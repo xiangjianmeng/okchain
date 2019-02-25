@@ -192,7 +192,7 @@ To run in background:
 ## More information
 
 - Web: [okcoin.com/chain](https://www.okcoin.com/chain)
-- Forum: [forum.OKChain.org](https://forum.OKChain.org)
+- Forum: [forum.okchain.org](https://forum.okchain.org)
 - Mail: [dev@okcoin.com](mailto:dev@okcoin.com)
 - GitHub: [https://github.com/ok-chain/okchain](https://github.com/ok-chain/okchain)
 
