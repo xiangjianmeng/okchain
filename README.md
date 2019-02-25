@@ -1,4 +1,4 @@
-## Go OKChain
+## OKChain
 The official Golang implementation of the OKChain protocol.
 
 Overview - [Homepage](https://www.okcoin.com/chain)
