@@ -1,0 +1,29 @@
+version: '2'
+
+services:
+  peer1.new.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer1.new.com
+    hostname: peer1.new.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer1.new.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer1.new.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer1.new.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000 # 192.168.168.137:15000
+      - OKCHAIN_PEER_ROLEID=peer1.new.com
+    volumes:
+      - ./data/peer1.new.com:/opt/data
+    ports:
+      - 15011:15000
+      - 16011:16000
+      - 25011:25000
+    networks:
+      default:
+        ipv4_address: 188.22.0.111
+
+networks:
+  default:
+    external:
+      name: docker_okchain

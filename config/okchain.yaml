@@ -1,0 +1,63 @@
+
+
+peer:
+    publicKey: publicKey
+    privateKey: privateKey
+
+    # overwritten by dev/runokchain.sh
+    listenAddress: 0.0.0.0:15001
+
+    # overwritten by dev/runokchain.sh
+    lookupNodeUrl: 0.0.0.0:14001
+    dataDir: ./
+
+    gossipPortPrefix: 37000
+
+    # overwritten by dev/runokchain.sh
+    mode: 
+
+    jsonrpcAddress: 0.0.0.0:16001
+    enablepprof: true # or false
+
+    discovery:
+        period:  10s
+    # lookup是否需要接收block
+    lookup:
+        needLedger: false
+    # 如果为true，则所有节点都会定期检查本地账本与其他节点差异并尝试同步；否则只有idle节点（包括新加入节点）同步账本
+    allNodeSync: false 
+logging:
+
+    #     CRITICAL | ERROR | WARNING | NOTICE | INFO | DEBUG
+    # 1. The --logging-level=<level> command line option overrides all other
+    #    specifications.
+    # 2. The environment variable CORE_LOGGING_LEVEL otherwise applies to
+    #    all peer commands if defined as a non-empty string.
+    # options.
+    level: debug
+    client: debug
+    peer:   debug
+    node:   info
+    version: warning
+    output:
+        file: "/dev/null"
+
+ledger:
+    baseDir: ./data_unittest/okchain/
+    txblockchain:
+        genesisConf: ./okchain/go-okchain/core/txblockchain/data/genesis.json
+    state:
+
+sharding:
+  size: 4
+
+ds:
+  size: 4
+
+consensus:
+  powDifficulty: 100000
+  wait4PoWTime: 30
+  viewchangeTimeOut: 30
+
+account:
+  keystoreDir:

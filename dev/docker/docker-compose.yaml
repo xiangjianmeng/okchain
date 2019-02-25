@@ -1,0 +1,321 @@
+version: '2'
+
+services:
+  peer1.lookup.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer1.lookup.com
+    hostname: peer1.lookup.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer1.lookup.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer1.lookup.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer1.lookup.com:16000
+      - OKCHAIN_PEER_LOOKUP_NEEDLEDGER=false
+      - OKCHAIN_PEER_MODE=lookup
+      - OKCHAIN_PEER_ROLEID=peer1.lookup.com
+    volumes:
+      - ./data/peer1.lookup.com:/opt/data
+    ports:
+      - 15000:15000
+      - 16000:16000
+      - 25000:25000
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.100
+
+  peer1.ds.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer1.ds.com
+    hostname: peer1.ds.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer1.ds.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer1.ds.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer1.ds.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000
+      - OKCHAIN_PEER_ROLEID=peer1.ds.com
+    volumes:
+      - ./data/peer1.ds.com:/opt/data
+    ports:
+      - 15001:15000
+      - 16001:16000
+      - 25001:25000
+    depends_on:
+      - peer1.lookup.com
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.101
+
+  peer2.ds.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer2.ds.com
+    hostname: peer2.ds.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer2.ds.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer2.ds.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer2.ds.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000
+      - OKCHAIN_PEER_ROLEID=peer2.ds.com
+    volumes:
+      - ./data/peer2.ds.com:/opt/data
+    ports:
+      - 15002:15000
+      - 16002:16000
+      - 25002:25000
+    depends_on:
+      - peer1.lookup.com
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.102
+
+  peer3.ds.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer3.ds.com
+    hostname: peer3.ds.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer3.ds.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer3.ds.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer3.ds.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000
+      - OKCHAIN_PEER_ROLEID=peer3.ds.com
+    volumes:
+      - ./data/peer3.ds.com:/opt/data
+    ports:
+      - 15003:15000
+      - 16003:16000
+      - 25003:25000
+    depends_on:
+      - peer1.lookup.com
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.103
+
+  peer4.ds.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer4.ds.com
+    hostname: peer4.ds.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer4.ds.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer4.ds.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer4.ds.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000
+      - OKCHAIN_PEER_ROLEID=peer4.ds.com
+    volumes:
+      - ./data/peer4.ds.com:/opt/data
+    ports:
+      - 15004:15000
+      - 16004:16000
+      - 25004:25000
+    depends_on:
+      - peer1.lookup.com      
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.104
+
+  peer1.sharding.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer1.sharding.com
+    hostname: peer1.sharding.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer1.sharding.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer1.sharding.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer1.sharding.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000
+      - OKCHAIN_PEER_ROLEID=peer1.sharding.com
+    volumes:
+      - ./data/peer1.sharding.com:/opt/data
+    ports:
+      - 15010:15000
+      - 16010:16000
+      - 25010:25000
+    depends_on:
+      - peer1.lookup.com
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.110
+
+  peer2.sharding.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer2.sharding.com
+    hostname: peer2.sharding.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer2.sharding.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer2.sharding.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer2.sharding.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000
+      - OKCHAIN_PEER_ROLEID=peer2.sharding.com
+    volumes:
+      - ./data/peer2.sharding.com:/opt/data
+    ports:
+      - 15020:15000
+      - 16020:16000
+      - 25020:25000
+    depends_on:
+      - peer1.lookup.com
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.120
+
+  peer3.sharding.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer3.sharding.com
+    hostname: peer3.sharding.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer3.sharding.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer3.sharding.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer3.sharding.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000
+      - OKCHAIN_PEER_ROLEID=peer3.sharding.com
+    volumes:
+      - ./data/peer3.sharding.com:/opt/data
+    ports:
+      - 15030:15000
+      - 16030:16000
+      - 25030:25000
+    depends_on:
+      - peer1.lookup.com
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.130
+
+  peer4.sharding.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer4.sharding.com
+    hostname: peer4.sharding.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer4.sharding.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer4.sharding.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer4.sharding.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000
+      - OKCHAIN_PEER_ROLEID=peer4.sharding.com
+    volumes:
+      - ./data/peer4.sharding.com:/opt/data
+    ports:
+      - 15040:15000
+      - 16040:16000
+      - 25040:25000
+    depends_on:
+      - peer1.lookup.com
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.140
+
+  peer5.sharding.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer5.sharding.com
+    hostname: peer5.sharding.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer5.sharding.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer5.sharding.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer5.sharding.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000
+      - OKCHAIN_PEER_ROLEID=peer5.sharding.com
+    volumes:
+      - ./data/peer5.sharding.com:/opt/data
+    ports:
+      - 15050:15000
+      - 16050:16000
+      - 25050:25000
+    depends_on:
+      - peer1.lookup.com    
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.150
+
+  peer6.sharding.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer6.sharding.com
+    hostname: peer6.sharding.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer6.sharding.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer6.sharding.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer6.sharding.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000
+      - OKCHAIN_PEER_ROLEID=peer6.sharding.com
+    volumes:
+      - ./data/peer6.sharding.com:/opt/data
+    ports:
+      - 15060:15000
+      - 16060:16000
+      - 25060:25000
+    depends_on:
+      - peer1.lookup.com     
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.160
+
+  peer7.sharding.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer7.sharding.com
+    hostname: peer7.sharding.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer7.sharding.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer7.sharding.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer7.sharding.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000
+      - OKCHAIN_PEER_ROLEID=peer7.sharding.com
+    volumes:
+      - ./data/peer7.sharding.com:/opt/data
+    ports:
+      - 15070:15000
+      - 16070:16000
+      - 25070:25000
+    depends_on:
+      - peer1.lookup.com    
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.170
+
+  peer8.sharding.com:
+    extends:
+      file: base.yaml
+      service: peer-base
+    container_name: peer8.sharding.com
+    hostname: peer8.sharding.com
+    environment:
+      - OKCHAIN_PEER_LISTENADDRESS=peer8.sharding.com:15000
+      - OKCHAIN_PEER_DEBUG_LISTENADDRESS=peer8.sharding.com:25000
+      - OKCHAIN_PEER_JSONRPCADDRESS=peer8.sharding.com:16000
+      - OKCHAIN_PEER_LOOKUPNODEURL=188.22.0.100:15000
+      - OKCHAIN_PEER_ROLEID=peer8.sharding.com
+    volumes:
+      - ./data/peer8.sharding.com:/opt/data
+    ports:
+      - 15080:15000
+      - 16080:16000
+      - 25080:25000
+    depends_on:
+      - peer1.lookup.com   
+    networks:
+      okchain:
+        ipv4_address: 188.22.0.180
+      
+networks:
+  okchain:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 188.22.0.0/16
+        # ip_range: 188.22.5.0/24

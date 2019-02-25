@@ -1,0 +1,12 @@
+{
+  "config": {
+      "chainId": 8888
+  },
+  "nonce": 42,
+  "version" : 1,
+  "alloc": {
+    "0x9b175d69a0A3236A1e6992d03FA0be0891D8D023":{"balance":100000000000},
+    "0xD8104E3E6dE811DD0cc07d32cCcE2f4f4B38403a":{"balance":1},
+    "0x94dc66c8be8393e41791dfd7b8a47fe43f3e0890":{"balance":100000000000}
+  }
+}

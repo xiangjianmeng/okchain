@@ -1,0 +1,130 @@
+[
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "tokens",
+				"type": "uint64"
+			}
+		],
+		"name": "withdraw_token",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint64"
+			}
+		],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "get_total_token",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint64"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "get_token_count",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint64"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "tokens",
+				"type": "uint64"
+			}
+		],
+		"name": "deposit_token",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint64"
+			}
+		],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"payable": true,
+		"stateMutability": "payable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"name": "deposit_token",
+				"type": "uint64"
+			}
+		],
+		"name": "NegtiveTokensNotAllow",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"name": "deposit_token",
+				"type": "uint64"
+			}
+		],
+		"name": "BalanceNotEnough",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"name": "msg",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"name": "tokens",
+				"type": "uint64"
+			}
+		],
+		"name": "Info",
+		"type": "event"
+	}
+]

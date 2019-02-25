@@ -1,0 +1,31 @@
+
+version: '2' # compose v3 still doesn't support `extends`, shame!
+
+services:
+  peer-base: 
+    image: okchain/testnet-okchaind:latest
+    restart: always
+    # network_mode: ${NETWORK}
+    environment:
+      # - OKCHAIN_PEER_LISTENADDRESS=0.0.0.0:15000
+      - OKCHAIN_PEER_GRPC_LISTENPORT=15000
+      # - OKCHAIN_PEER_DEBUG_LISTENADDRESS=0.0.0.0:25000
+      # - OKCHAIN_PEER_JSONRPCADDRESS=0.0.0.0:16000
+      # - PEER_CFG_PATH=
+      - OKCHAIN_PEER_GOSSIP_LISTENPORT=15000
+      - OKCHAIN_PEER_ALLNODESYNC=false
+      - OKCHAIN_PEER_DATADIR=/opt/data/
+      - OKCHAIN_PEER_IPCENDPOINT=/opt/data/16000.ipc
+      - OKCHAIN_LEDGER_BASEDIR=/opt/data/db/
+      - OKCHAIN_PEER_LOGPATH=/opt/data/peer.log
+      - OKCHAIN_ACCOUNT_KEYSTOREDIR=/opt/data/keystore
+      - OKCHAIN_LEDGER_TXBLOCKCHAIN_GENESISCONF=/opt/gopath/src/github.com/ok-chain/okchain/dev/genesis.json
+      - OKCHAIN_LOGGING_NODE=debug:ledger=debug:role=debug:state=debug:consensus=debug:gossip=info:peer=debug:txpool=debug:VM=debug:CORE=debug
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - "15000"
+      - "16000"
+      - "25000"
+    # working_dir: /opt/gopath/bin
+    command: okchaind node start #>> /opt/data/stdout.log 2>>/opt/data/stdout.log

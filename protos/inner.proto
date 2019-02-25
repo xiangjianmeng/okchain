@@ -1,0 +1,23 @@
+syntax = "proto3";
+import "explorer.proto";
+package protos;
+
+service Inner {
+    rpc GetPeerStatus(EmptyRequest) returns (PeerStatusResponse) {}
+}
+
+message PeerStatusResponse {
+    string crrRoleName          = 1;              // 角色
+    string crrFSMStatus         = 2;              // 状态机状态
+    uint32 cssRole              = 3;              // [ConsensusIDLE, ConsensusDSLEADER, .., ConsensusSHARDINGNODE]
+    uint32 cssMode              = 4;              // [IDLE, DSBlockConsensus, MircoBlockConsensus, FinalBlockConsensus, ViewChangeBlockConsensus]
+    uint32 crrGspPeersCnt       = 5;              // 当前 gossip 网络中的 member 数.
+    uint32 crrPowCntInDSHandler = 6;              // 当前 DSHandler中接收到 ShardingNode 提交的 PoW
+    uint32 crrMBCntInDSHandler  = 7;              // 当前 DSHandler中接收到微块数量
+    uint32 crrDSHeight          = 8;              // 当前 DSBlockChain 的高度
+    uint32 crrTxHeight          = 9;              // 当前 TxBlockChain 的高度
+    uint32 totalTXNum           = 10;             // 累计交易的数量
+    uint32 shardId              = 11;             // 当前所属分片的 shardId
+    uint32 txPending            = 12;             // TxPool 中 Pending Trx 数量
+    uint32 txQueued             = 13;             // TxPool 中 Queued Trx 数量
+}

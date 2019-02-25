@@ -1,0 +1,143 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "rJDxiX9v1e0gSmqLtgGNSBzFVhI=",
+			"path": "github.com/bls",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "WbEt3N8OMcpnFxlpuldwGYZqTk0=",
+			"path": "github.com/golang/proto",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "BP2buXHHOKxI5eYS2xELVng2kf4=",
+			"path": "github.com/golang/protobuf/jsonpb",
+			"revision": "5e0eda4b6dc0f7e3c4ed8b94d87f7f7186b20c9c",
+			"revisionTime": "2018-10-24T21:30:55Z"
+		},
+		{
+			"checksumSHA1": "GaJLoEuMGnP5ofXvuweAI4wx06U=",
+			"path": "github.com/golang/protobuf/proto",
+			"revision": "5e0eda4b6dc0f7e3c4ed8b94d87f7f7186b20c9c",
+			"revisionTime": "2018-10-24T21:30:55Z"
+		},
+		{
+			"checksumSHA1": "fXNL9CT3MIlkdLUCn83Aon7QVAU=",
+			"path": "github.com/golang/protobuf/protoc-gen-go/descriptor",
+			"revision": "5e0eda4b6dc0f7e3c4ed8b94d87f7f7186b20c9c",
+			"revisionTime": "2018-10-24T21:30:55Z"
+		},
+		{
+			"checksumSHA1": "iCeyDlbDEF781sR5PNlr0VquZf4=",
+			"path": "github.com/golang/protobuf/ptypes",
+			"revision": "5e0eda4b6dc0f7e3c4ed8b94d87f7f7186b20c9c",
+			"revisionTime": "2018-10-24T21:30:55Z"
+		},
+		{
+			"checksumSHA1": "UvYEjI10BRTlBOd8fZvQrJbLpC4=",
+			"path": "github.com/golang/protobuf/ptypes/any",
+			"revision": "5e0eda4b6dc0f7e3c4ed8b94d87f7f7186b20c9c",
+			"revisionTime": "2018-10-24T21:30:55Z"
+		},
+		{
+			"checksumSHA1": "M3oPsrZNY/mbRzI4bPBUsYod02c=",
+			"path": "github.com/golang/protobuf/ptypes/duration",
+			"revision": "5e0eda4b6dc0f7e3c4ed8b94d87f7f7186b20c9c",
+			"revisionTime": "2018-10-24T21:30:55Z"
+		},
+		{
+			"checksumSHA1": "HIX1oVcLcrU/7TlubtXX0aorews=",
+			"path": "github.com/golang/protobuf/ptypes/empty",
+			"revision": "5e0eda4b6dc0f7e3c4ed8b94d87f7f7186b20c9c",
+			"revisionTime": "2018-10-24T21:30:55Z"
+		},
+		{
+			"checksumSHA1": "ws9HRs7xeeg7C7hBhyvcDBrVgcc=",
+			"path": "github.com/golang/protobuf/ptypes/struct",
+			"revision": "5e0eda4b6dc0f7e3c4ed8b94d87f7f7186b20c9c",
+			"revisionTime": "2018-10-24T21:30:55Z"
+		},
+		{
+			"checksumSHA1": "T42CEYmGiqIXTe36UJ5jLPO33lY=",
+			"path": "github.com/golang/protobuf/ptypes/timestamp",
+			"revision": "5e0eda4b6dc0f7e3c4ed8b94d87f7f7186b20c9c",
+			"revisionTime": "2018-10-24T21:30:55Z"
+		},
+		{
+			"checksumSHA1": "p/8vSviYF91gFflhrt5vkyksroo=",
+			"path": "github.com/golang/snappy",
+			"revision": "553a641470496b2327abcac10b36396bd98e45c9",
+			"revisionTime": "2017-02-15T23:32:05Z"
+		},
+		{
+			"checksumSHA1": "izN7uAwZ48gc4cFOkvppLFVrjWw=",
+			"path": "github.com/google/keytransparency/core/api/v1/keytransparency_go_proto",
+			"revision": "a134aef2639b9e645378849ca0ffc27f21317495",
+			"revisionTime": "2018-10-23T23:52:48Z"
+		},
+		{
+			"checksumSHA1": "M96Tp3GAB2OT31M/mvt3NTNwHoc=",
+			"path": "github.com/google/keytransparency/core/testdata",
+			"revision": "a134aef2639b9e645378849ca0ffc27f21317495",
+			"revisionTime": "2018-10-23T23:52:48Z"
+		},
+		{
+			"checksumSHA1": "2bdNVxeUgvmGNcq0s44+xaavuzk=",
+			"path": "github.com/google/tink/proto/tink_go_proto",
+			"revision": "b07ae40f73585280fefeb10591d1474573b809a0",
+			"revisionTime": "2018-11-01T15:42:18Z"
+		},
+		{
+			"checksumSHA1": "5CO53PKmeIcgLoTwx7uLx0+zXSo=",
+			"path": "github.com/google/trillian",
+			"revision": "d252013315317cd4e089f5cc8b3e4f3f6e01a64c",
+			"revisionTime": "2018-11-14T19:33:44Z"
+		},
+		{
+			"checksumSHA1": "u2q5qSyGNKqIwOUK/E8hzinAtuk=",
+			"path": "github.com/google/trillian/crypto/keys",
+			"revision": "d252013315317cd4e089f5cc8b3e4f3f6e01a64c",
+			"revisionTime": "2018-11-14T19:33:44Z"
+		},
+		{
+			"checksumSHA1": "azgZ/rBHScidh5YORUFraslnJDU=",
+			"path": "github.com/google/trillian/crypto/keys/der",
+			"revision": "d252013315317cd4e089f5cc8b3e4f3f6e01a64c",
+			"revisionTime": "2018-11-14T19:33:44Z"
+		},
+		{
+			"checksumSHA1": "5a78ikdvmgAXtIYbIxi39xeV7Vs=",
+			"path": "github.com/google/trillian/crypto/keys/der/proto",
+			"revision": "d252013315317cd4e089f5cc8b3e4f3f6e01a64c",
+			"revisionTime": "2018-11-14T19:33:44Z"
+		},
+		{
+			"checksumSHA1": "rkz+aUWlRvSprEmWLXSQZYzFlqY=",
+			"path": "github.com/google/trillian/crypto/keyspb",
+			"revision": "d252013315317cd4e089f5cc8b3e4f3f6e01a64c",
+			"revisionTime": "2018-11-14T19:33:44Z"
+		},
+		{
+			"checksumSHA1": "tJIVxrmTTEJ0ByIcCl3oZcXL/ho=",
+			"path": "github.com/google/trillian/crypto/sigpb",
+			"revision": "d252013315317cd4e089f5cc8b3e4f3f6e01a64c",
+			"revisionTime": "2018-11-14T19:33:44Z"
+		},
+		{
+			"checksumSHA1": "SsMMqb3xn7hg1ZX5ugwZz5rzpx0=",
+			"path": "github.com/tyler-smith/go-bip39",
+			"revision": "dbb3b84ba2ef14e894f5e33d6c6e43641e665738",
+			"revisionTime": "2018-10-17T06:06:43Z"
+		},
+		{
+			"checksumSHA1": "xa+UUbqD3zPfa8mKAxWabRsqSzM=",
+			"path": "github.com/tyler-smith/go-bip39/wordlists",
+			"revision": "dbb3b84ba2ef14e894f5e33d6c6e43641e665738",
+			"revisionTime": "2018-10-17T06:06:43Z"
+		}
+	],
+	"rootPath": "github.com/okchain/go-okchain"
+}

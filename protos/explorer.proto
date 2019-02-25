@@ -1,0 +1,168 @@
+syntax = "proto3";
+import "okchain.proto";
+package protos;
+
+//## Message
+//|:-------------------------------- |
+    // Balance = 0; //Account
+    // DsBlock = 1;
+    // TxBlock = 2;
+    // LatestDsBlock =3;
+    // LatestTxBlock =4;
+    // Transaction = 5;
+    // BlockchainInfo = 6;
+    // RecentTransactions = 7;
+    // DSBlockListing = 8;
+    // TxBlockListing = 9;
+
+    // SmartContracts = 30;
+    // SmartContractState = 31;
+    // SmartContractCode = 32;
+    // SmartContractInit = 33;
+
+//*********Account relative*****
+message AccountRequest{
+    bytes address = 1;
+}
+message AccountResponse{
+    Account account = 1;
+}
+// message TxHistoryRequest{
+//     bytes address =1;
+//     uint32 number =2;
+// }
+// message TxHistoryResponse{
+//     repeated Transaction transaction = 1;
+//     uint32 number = 2;
+// }
+// message TxByHashRequest{
+//     bytes hash = 1;
+// }
+// message TxByHashResponse{
+//     Transaction transactions = 1;
+// }
+
+// //*********DsBlock relative*****
+// message DsBlockByHeightRequest{
+//     uint64 number = 1;
+// }
+// message DsBlockByHeightResponse{
+//     DSBlock block = 1;
+// }
+// message DsBlockByHashRequest{
+//     bytes hash = 1;
+// }
+// message DsBlockByHashResponse{
+//     DsBlock block = 1;
+// }
+// message DsBlockLatestRequest{
+// }
+// message DsBlockLatestResponse{
+//     DsBlock block =1;
+// }
+// message DsBlockSinceRequest{
+//     uint64 number = 1;
+// }
+// message DsBlockSinceResponse{
+//     repeated DsBlock blocks = 1;
+//     uint32 number = 2;
+// }
+
+// //*********TxBlock relative*****
+// message TxBlockByHeightRequest{
+//     uint64 number = 1;
+// }
+// message TxBlockByHeightResponse{
+//     DSBlock block = 1;
+// }
+// message TxBlockByHashRequest{
+//     bytes hash = 1;
+// }
+// message TxBlockByHashResponse{
+//     DsBlock block = 1;
+// }
+// message TxBlockLatestRequest{
+// }
+// message TxBlockLatestResponse{
+//     DsBlock block =1;
+// }
+// message TxBlockSinceRequest{
+//     uint64 number = 1;
+// }
+// message TxBlockSinceResponse{
+//     repeated DsBlock blocks = 1;
+//     uint32 number = 2;
+// }
+
+message TransactionResponse{
+    string hash = 1;
+}
+
+
+message DsBlockRequest{
+    uint64 number = 1;
+}
+
+message TxBlockRequest{
+    uint64 number = 1;
+}
+
+message TransactionRequest{
+    bytes addr = 1;
+}
+
+message EmptyRequest{
+}
+
+message RecentTransactionsRequest{
+    uint64 number = 1;
+}
+
+message RecentTransactionsResponse{
+    repeated Transaction transactions = 1;
+}
+
+message RegisterAccountRequest{
+    bytes address = 1;
+}
+
+message RegisterAccountResponse{
+    uint32 code = 1;
+}
+
+message GetTransactionsByAccountRequest{
+    uint64 number = 1;
+    bytes address = 2;
+}
+
+message GetTransactionsByAccountResponse{
+    repeated Transaction transactions = 1;
+}
+
+
+message NetworkInfoRequest{
+    uint64 number = 1;
+}
+
+message NetworkInfoResponse{
+    repeated PeerEndpoint DsList = 1;
+    repeated PeerEndpoint ShardingList = 2;
+    repeated PeerEndpoint LookupList = 3;
+    repeated PeerEndpoint RemotePeerList = 4;
+}
+
+service Backend {
+    rpc GetNetworkInfo(NetworkInfoRequest) returns (NetworkInfoResponse){}
+    rpc GetAccount(AccountRequest) returns (AccountResponse){}
+    rpc GetDsBlock(DsBlockRequest) returns (DSBlock){}
+    rpc GetTxBlock(TxBlockRequest) returns (TxBlock){}
+    rpc GetTransaction(TransactionRequest) returns (Transaction){}
+    rpc GetRecentTransactions(RecentTransactionsRequest) returns (RecentTransactionsResponse){}
+    rpc GetTransactionsByAccount(GetTransactionsByAccountRequest) returns (GetTransactionsByAccountResponse){}
+    rpc GetLatestDsBlock(EmptyRequest) returns (DSBlock){}
+    rpc GetLatestTxBlock(EmptyRequest) returns (TxBlock){}
+    rpc RegisterAccount(RegisterAccountRequest) returns (RegisterAccountResponse){}
+    rpc SendTransaction(Transaction) returns (TransactionResponse){}
+    rpc Notify(Message) returns (ConfigRpcResponse){}
+}
+

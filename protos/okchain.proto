@@ -1,0 +1,305 @@
+
+syntax = "proto3";
+package protos;
+
+service Peer {
+    rpc Chat(stream Message) returns (stream Message) {}
+}
+
+
+//## Message mapping
+//| message-func  | handler                 |
+//| :---| :-------------------------------- |
+//|	0-0	|	PeerManager::ProcessHello
+//|	0-1	|	PeerManager::ProcessAddPeer	 
+//|	0-2	|	PeerManager::ProcessPing	 
+//|	0-3	|	PeerManager::ProcessPingAll	 
+//|	0-4	|	PeerManager::ProcessBroadcast	 
+//|	1-0	|	DirectoryService::ProcessSetPrimary	 
+//|	1-1	|	DirectoryService::ProcessPoWSubmission	 
+//|	1-2	|	DirectoryService::ProcessDSBlockConsensus	 
+//|	1-3	|	DirectoryService::ProcessMicroblockSubmission	 
+//|	1-4	|	DirectoryService::ProcessFinalBlockConsensus	 
+//|	1-5	|	DirectoryService::ProcessViewChangeConsensus	 
+//|	2-0	|	Node::ProcessStartPoW	 
+//|	2-1	|	Node::ProcessDSBlock	 
+//|	2-2	|	Node::ProcessCreateTransaction	 
+//|	2-3	|	Node::ProcessSubmitTransaction	 
+//|	2-4	|	Node::ProcessMicroblockConsensus	 
+//|	2-5	|	Node::ProcessFinalBlock	 
+//|	2-6	|	Node::ProcessForwardTransaction	 
+//|	2-7	|	Node::ProcessCreateTransactionFromLookup	 
+//|	2-8	|	Node::ProcessVCBlock	 
+//|	2-9	|	Node::ProcessDoRejoin	 
+//|	3-0	|	ConsensusUser::ProcessSetLeader	 
+//|	3-1	|	ConsensusUser::ProcessStartConsensus	 
+//|	3-2	|	ConsensusUser::ProcessConsensusMessage
+
+message Message {                   //消息结构
+    enum Type {
+        Peer_Hello = 0;
+        Peer_AddPeer = 1;
+        Peer_Register = 2;
+        DS_SetPrimary = 100;
+        DS_PoWSubmission = 101;
+        DS_DSBlockConsensus = 102;
+        DS_MicroblockSubmission = 103;
+        DS_FinalBlockConsensus = 104;
+        DS_ViewChangeConsensus = 105;
+        Node_ProcessStartPoW = 200;
+        Node_ProcessDSBlock = 201;
+        Node_MircoBlockConsensus = 202;
+        Node_ProcessFinalBlock = 203;
+        Node_ViewChangeConsensus = 204;
+        Node_ProcessCreateTransaction = 205;
+        Node_BroadcastTransactions = 206;
+        Node_RevertState = 207;
+        Node_NewAdd = 208;
+        Consensus_Announce = 301;
+        Consensus_Commit = 302;
+        Consensus_Challenge = 303;
+        Consensus_Response = 304;
+        Consensus_CollectiveSig = 305;
+        Consensus_FinalCommit = 306;
+        Consensus_FinalChallenge = 307;
+        Consensus_FinalResponse = 308;
+        Consensus_FinalCollectiveSig = 309;
+        // Node_xxx = ...;
+    }
+    Type type = 1;              //消息类型，格式为节点类型_消息类别
+    Timestamp timestamp = 2;    //时间戳
+    bytes payload = 3;          //消息内容，需根据消息类型再次解析
+    bytes signature = 4;        //签名
+    PeerEndpoint peer = 5; //节点
+}
+
+message PeerID {
+    string name = 1;            //节点地址端口
+}
+
+message Timestamp {
+    uint64 Second = 1;
+    uint64 Nanosecond = 2;
+}
+
+message PeerEndpoint {
+    PeerID id = 1;              //节点地址端口
+    string address = 2;         //地址
+    uint32 port = 3;            //端口
+    bytes pubkey = 4;          //节点公钥
+    string roleid = 5;          //节点公钥
+    bytes coinbase = 6;         //节点激励地址
+}
+
+enum ConsensusType {            //共识类型
+    DsBlockConsensus = 0;       //DSBlock共识
+    MicroBlockConsensus = 1;    //MicroBlock共识
+    FinalBlockConsensus = 2;    //FinalBlock共识
+    ViewChangeConsensus = 3;    //ViewChange共识
+}
+
+message StartPoW {              //启动PoW计算
+    uint64 blockNum = 1;        //Block number
+    uint64 difficulty = 2;      //难度值
+    string rand1 = 3;           //随机数1
+    string rand2 = 4;           //随机数2
+    PeerEndpoint peer = 5;      //节点信息
+}
+
+message PoWSubmission{          //PoW结果提交
+    uint64  blockNum = 1;       //Block number
+    uint64  nonce = 2;          //计算nonce
+    uint64  difficulty = 3;     //难度值
+    string rand1 = 4;           //随机数1
+    string rand2 = 5;           //随机数2
+    PeerEndpoint peer = 6;
+    bytes publicKey = 7;
+    bytes coinbase = 8;
+    MiningResult   result = 9;
+}
+
+message MiningResult  {
+    uint64 Nonce = 1;
+    bytes  MixHash = 2;
+    bytes  PowResult = 3;
+    bytes  Proof = 4;
+    bytes  Vrfvalue = 5;
+}
+
+
+message ConsensusPayload {
+    ConsensusType type = 1;     //共识阶段类型
+    bytes msg = 2;              //消息内容，根据共识阶段不同，存储的是DSblock、Microblock、FinalBlock序列化结果
+}
+
+message Announce {              //announce共识消息
+    ConsensusType type = 1;     //共识阶段类型
+    bytes msg = 2;              //消息内容，根据共识阶段不同，存储的是DSblock、Microblock、FinalBlock序列化结果
+}
+
+message Commit {                //commit共识消息
+    ConsensusType type = 1;     //共识阶段类型
+    bytes msg = 2;              //消息内容
+}
+
+message Challenge {             //challenge共识消息
+    ConsensusType type = 1;     //共识阶段类型
+    bytes msg = 2;              //消息内容
+}
+
+message Response {              //response共识消息
+    ConsensusType type = 1;     //共识阶段类型
+    bytes msg = 2;              //消息内容
+}
+
+message CollectiveSig {         //collectiveSig共识消息
+    ConsensusType type = 1;     //共识阶段类型
+    bytes msg = 2;              //消息内容
+}
+
+message FinalCommit {           //finalCommit共识消息
+    ConsensusType type = 1;     //共识阶段类型
+    bytes msg = 2;              //消息内容
+}
+
+message FinalChallenge {        //finalChallenge共识消息
+    ConsensusType type = 1;     //共识阶段类型
+    bytes msg = 2;              //消息内容
+}
+
+message FinalResponse {         //finalResponse共识消息
+    ConsensusType type = 1;     //共识阶段类型
+    bytes msg = 2;              //消息内容
+}
+
+message FinalCollectiveSig {    //finalCollectiveSig共识消息
+    ConsensusType type = 1;     //共识阶段类型
+    bytes msg = 2;              //消息内容
+}
+
+message VCBlockHeader{
+    Timestamp timestamp = 1;    //时间戳
+    uint64 viewChangeDSNo = 2;  //触发ViewChange时的DS块Number
+    uint64 viewChangeTXNo = 3;  //触发ViewChange时的TX块Number
+    PeerEndpoint newLeader = 4; //更换的新Leader节点信息
+    string stage = 5;           //当前所处的阶段，DS、TX、MC共识
+    repeated bool boolMap = 6;
+    bytes signature = 7;
+    bytes multiPubKey = 8;
+}
+
+message VCBlock{                //ViewChange块
+    VCBlockHeader header = 1;   //ViewChange头
+}
+
+message MicroBlock{             //微块
+    TxBlockHeader header = 1;   //微块头
+    uint32 shardID = 2;         //所在分片的ID
+    PeerEndpoint miner = 3;     //节点信息
+    bytes shardingLeadCoinBase = 4;
+    repeated Transaction Transactions = 5; //交易列表
+}
+
+message StakeWeight{
+    Timestamp timestamp = 1;   // 权重的结算时间戳
+    uint64 weight = 2;         // 权重
+}
+
+message Account{
+    uint64 Nonce = 1;            // 转账序列号,每转账一次该值加1
+    uint64 Balance = 2;          // 余额
+    bytes Root = 3;              // 合约存储Root
+    bytes codeHash = 4;          // 合约代码哈希
+    uint64  stakeWeight = 5;    // 某一时刻的币龄权重
+}
+
+message Transaction{
+    uint32 version = 1;        // 版本号
+    uint64 nonce = 2;          // 随机数
+    bytes senderPubKey = 3;    // From地址
+    bytes toAddr = 4;          // To地址
+    uint64 amount = 5;         // 转账金额
+    bytes signature = 6;       // 交易签名
+    uint64 gasPrice = 7;       // gas价格
+    uint64 gasLimit = 8;       // gas最大值
+    bytes code = 9;            // 合约代码,仅在执行合约交易时不为空
+    bytes data = 10;           // 合约代码相关数据,函数参数等
+    Timestamp timestamp = 11;  // 交易时间戳
+}
+
+message DSBlock {
+    DSBlockHeader header = 1;                       // DSBlock头部
+    DSBlockBody body = 2;                           // DsBlock体
+}
+
+message DSBlockHeader {
+    uint32 version = 1;                             // 版本号
+    Timestamp timestamp = 2;                        // 时间戳
+    bytes previousBlockHash = 3;                    // 父哈希
+    uint32 shardingSum = 4;
+    bytes winnerPubKey = 5;                         // DS lead pub key of current epoch
+    uint64 winnerNonce = 6;                         // 本轮胜出PoW的节点计算的nonce值
+    uint64 blockNumber = 7;                         // DSBlock number
+    uint64 powDifficulty = 8;                       // 计算pow的难度值
+    uint64 powSubmissionNum = 9;
+    PeerEndpoint newLeader = 10;                     // 本轮胜出的新DS Leader节点信息
+    PeerEndpoint miner = 11;
+    repeated bool boolMap = 12;
+    bytes signature = 13;
+    bytes multiPubKey = 14;
+}
+
+message DSBlockBody {
+    repeated PeerEndpoint shardingNodes = 1;        // 分片节点信息列表
+    repeated PeerEndpoint committee = 2;
+    bytes currentBlockHash = 3;                     // 当前块的Hash
+}
+
+message TxBlock {
+    TxBlockHeader header = 1;               // 区块头
+    TxBlockBody body = 2;
+}
+
+message TxBlockHeader {
+    uint32 version = 1;        // 版本号
+    Timestamp timestamp = 2;   // 出块时间戳
+    bytes previousBlockHash = 3;      // 上一个block hash
+    uint64 blockNumber = 4;    // 区块高度
+    repeated bytes dSCoinBase = 5;        // 生成Final块的DS Leader节点收款地址，后续可考虑其他方案去掉
+    repeated bytes shardingLeadCoinBase = 6;
+    bytes stateRoot = 7;       // 交易状态树的hash
+    bytes txRoot = 8;          // 交易树的hash
+    uint64 gasLimit = 9;       // 区块内所有Gas消耗的理论上限
+    uint64 gasUsed = 10;       // 区块内所有Transaction执行时所实际消耗的Gas总和
+    uint64 dSBlockNum = 11;    // 对应的DS block num, TxBlock:DSBlock是n:1关系
+    bytes dSBlockHash = 12;    // 对应的DS block hash
+    PeerEndpoint miner = 13;
+    uint64 txNum = 14;         // 该块的交易个数
+    repeated bool boolMap = 15;
+    bytes signature = 16;
+    bytes multiPubKey = 17;
+}
+
+message TxBlockBody {
+    uint32 numberOfMicroBlock = 1;          // 子块个数
+    repeated bytes microBlockHashes = 2;    // 子块hash值列表
+    repeated Transaction Transactions = 3;  // 交易列表
+    bytes currentBlockHash = 4;             // 当前块的hash
+}
+
+message ConfigRpcResponse{
+    uint32 code = 1;
+}
+
+message InformDs{
+    PeerEndpoint Leader = 1;
+    int32 DsSize = 2;
+	repeated PeerEndpoint DsList = 3;
+}
+
+message InformSharding{
+    StartPoW Pow = 1;
+    int32 ShardingSize = 2;
+	repeated PeerEndpoint DsList = 3;
+    repeated PeerEndpoint ShardingList = 4;
+}
