@@ -12,7 +12,6 @@ OKChain is a high-performance public distributed multi-chain platform and a priv
 
 This is the core implementation of OKChain. It is open source and completely free to use without restrictions, except for those specified in the license agreement below. There are no restrictions on anyone creating an alternative implementation of OKChain that uses the protocol and network in a compatible manner.
 
-As with many development projects, the repository on Github is considered to be the "staging" area for the latest changes. Before changes are merged into that branch on the main repository, they are tested by individual developers in their own branches, submitted as a pull request, and then subsequently tested by contributors who focus on testing and code reviews. That having been said, the repository should be carefully considered before using it in a production environment, unless there is a patch in the repository for a particular show-stopping issue you are experiencing. It is generally a better idea to use a tagged release for stability.
 
 ## Features
 * Sharding, including network and transaction sharding
@@ -46,10 +45,11 @@ sources are also used for statically-linked builds because distribution
 packages often include only shared library binaries (`.so`) but not static
 library archives (`.a`).
 
-| Dep          | Min. version  | Vendored | Debian/Ubuntu pkg  | Arch pkg     | Fedora  | Optional | Purpose  |
-| ------------ | ------------- | -------- | ------------------ | ------------ | ------- | -------- | -------- |
-| RocksDB      | 5.10.4        | NO       | `build-essential`  | `base-devel` | `gcc`   | NO       |          |               | ------------ | ------------- | -------- | ------------------ | ------------ | ------- | -------- | -------- |
-| BLS          | NO        	 | NO       | `llvm libgmp-dev libssl-dev` | NO | `g++`   | NO       |          |
+| Dep          | Min. version  | Vendored | Debian/Ubuntu pkg  | Arch pkg     | Fedora  | Optional | 
+| ------------ | ------------- | -------- | ------------------ | ------------ | ------- | -------- | 
+| RocksDB      | 5.10.4        | NO       | `build-essential`  | `base-devel` | `gcc`   | NO       |
+| ------------ | ------------- | -------- | ------------------ | ------------ | ------- | -------- |
+| BLS          | NO            | NO       | `llvm libgmp-dev libssl-dev` | NO | `g++`   | NO     |
 #### Build RocksDB
 
 Upgrade your gcc to version at least 4.8 to get C++11 support.
@@ -136,20 +136,10 @@ export LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib
 
 ### Build OKChain from Source code
 First, prepare the Go compiler:
-
 ```
 brew install go
-```
-
-Then, clone the `OKChain` repository to a specified directory:
-
-```
 git clone https://github.com/ok-chain/okchain
-```
 
-Finally, build the `OKChaind` and `OKChaincli` program using the following command.
-
-```
 cd okchain
 mkdir -p build/bin
 
