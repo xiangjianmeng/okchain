@@ -24,7 +24,7 @@ endif
 DOCKER_TAG=$(shell uname -m)-$(PROJECT_VERSION)
 
 PKGNAME = github.com/$(PROJECT_NAME)
-GO_LDFLAGS = -X github.com/okchian/go-okchain/metadata.Version=$(PROJECT_VERSION)
+GO_LDFLAGS = -X github.com/ok-chain/okchain/metadata.Version=$(PROJECT_VERSION)
 CGO_FLAGS = CGO_CFLAGS=" " CGO_LDFLAGS="-lrocksdb -lstdc++ -lm -lz -lbz2 -lsnappy"
 UID = $(shell id -u)
 
