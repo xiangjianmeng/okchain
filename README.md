@@ -134,9 +134,8 @@ export LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib
         
 
 ### Build OKChain from Source code
-First, prepare the Go compiler:
+
 ```
-brew install go
 git clone https://github.com/ok-chain/okchain
 
 cd okchain
