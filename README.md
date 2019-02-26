@@ -48,7 +48,6 @@ library archives (`.a`).
 | Dep          | Min. version  | Vendored | Debian/Ubuntu pkg  | Arch pkg     | Fedora  | Optional | 
 | ------------ | ------------- | -------- | ------------------ | ------------ | ------- | -------- | 
 | RocksDB      | 5.10.4        | NO       | `build-essential`  | `base-devel` | `gcc`   | NO       |
-| ------------ | ------------- | -------- | ------------------ | ------------ | ------- | -------- |
 | BLS          | NO            | NO       | `llvm libgmp-dev libssl-dev` | NO | `g++`   | NO     |
 #### Build RocksDB
 
