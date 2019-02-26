@@ -1,0 +1,16 @@
+{
+    "config": {
+        "chainId": 8888
+    },
+    "nonce": 42,
+    "version" : 1,
+    "gaslimit": 4000000,
+    "alloc": {
+      "0xbcf72fc47d4aeec195dba5e0e26cea2b75416ec4":{"balance":10000000000000000000},
+      "0x4ba6fa234186ff7db0c10faa103eecb02a4f26fb":{"balance":10000000000000000000},
+      "0x84eaab7ecc07c333123a9a51976d596496d9e2a0":{"balance":1},
+      "0xe8c994f91c2a00e4e9d5d0449f1896ae3d2a371f":{"balance":10000000000000000000}
+    },
+    "gasLimit": 42314134
+  }
+  
