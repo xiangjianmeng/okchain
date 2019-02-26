@@ -2,7 +2,7 @@
 
 OKCHAIN_TOP=${GOPATH}/src/github.com/ok-chain/okchain
 DOCKER_DATA_PATH=${OKCHAIN_TOP}/dev/docker/data
-LOOKUP_IP=172.10.83.12
+LOOKUP_IP=172.10.83.100
 
 while getopts "s:n:l" opt; do
   case $opt in
@@ -28,7 +28,7 @@ function startnode {
     idx=${1}
     islookup=${2}
     if [ ! -z "${islookup}" ];then
-        hostname=lookup.com
+        hostname=bootnode.com
         str="--ip ${LOOKUP_IP} -e OKCHAIN_PEER_MODE=lookup "
     else
         hostname=peer${idx}.com
@@ -82,9 +82,9 @@ function main {
         echo -e "remove data_dir done\n"
         #startlookup
 
-        echo "start lookup_node"
+        echo "start bootnode"
         startnode 0 1
-        echo -e "start lookup_node done\n"
+        echo -e "start bootnode done\n"
     fi
 
     echo "start node"
