@@ -2,13 +2,13 @@
 
 OKCHAIN_TOP=${GOPATH}/src/github.com/ok-chain/okchain
 DOCKER_DATA_PATH=${OKCHAIN_TOP}/dev/docker/data
-LOOKUP_IP=172.10.83.100
+BOOTNODE_IP=172.10.83.100
 
 while getopts "s:n:l" opt; do
   case $opt in
     l)
-      echo "LOOKUP = 1"
-      LOOKUP=1
+      echo "BOOTNODE = 1"
+      BOOTNODE=1
       ;;
     s)
       echo "START = $OPTARG"
@@ -26,20 +26,20 @@ done
 
 function startnode {
     idx=${1}
-    islookup=${2}
-    if [ ! -z "${islookup}" ];then
+    isbootnode=${2}
+    if [ ! -z "${isbootnode}" ];then
         hostname=bootnode.com
-        str="--ip ${LOOKUP_IP} -e OKCHAIN_PEER_MODE=lookup "
+        str="--ip ${BOOTNODE_IP} -e OKCHAIN_PEER_MODE=lookup "
     else
         hostname=peer${idx}.com
-        str="-e OKCHAIN_PEER_LOOKUPNODEURL=${LOOKUP_IP}:15000 "
+        str="-e OKCHAIN_PEER_LOOKUPNODEURL=${BOOTNODE_IP}:15000 "
     fi
 
     let gossipport=15000+${idx}
     let jsonrpcport=16000+${idx}
-    let baseport3=25000+${idx}
+    let debugport=25000+${idx}
     shell="docker run -d --name ${hostname} -v ${DOCKER_DATA_PATH}/${hostname}:/opt/data \
-           -p ${gossipport}:15000 -p ${jsonrpcport}:16000 -p ${baseport3}:25000 \
+           -p ${gossipport}:15000 -p ${jsonrpcport}:16000 -p ${debugport}:25000 \
            --net okchain \
            -e OKCHAIN_PEER_GRPC_LISTENPORT=15000 \
            -e OKCHAIN_PEER_GOSSIP_LISTENPORT=15000 \
@@ -64,7 +64,7 @@ function startnode {
 
 
 function main {
-    if [ ! -z ${LOOKUP} ]; then
+    if [ ! -z ${BOOTNODE} ]; then
         echo "removing docker_all_node"
         docker rm -f $(docker ps -aq)
         echo -e "remove docker_all_node done\n"
@@ -80,7 +80,6 @@ function main {
         echo "removing data_dir"
         rm -rf ${DOCKER_DATA_PATH}
         echo -e "remove data_dir done\n"
-        #startlookup
 
         echo "start bootnode"
         startnode 0 1
