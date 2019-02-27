@@ -93,6 +93,4 @@ func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalanceAndWeight(sender, amount)
 	db.AddBalanceAndWeight(recipient, amount)
-	//db.SubBalance(sender, amount)
-	// db.AddBalance(recipient, amount)
 }

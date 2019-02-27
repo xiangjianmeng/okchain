@@ -114,7 +114,7 @@ func (h *storageJSON) UnmarshalText(text []byte) error {
 	}
 	offset := len(h) - len(text)/2 // pad on the left
 	if _, err := hex.Decode(h[offset:], text); err != nil {
-		fmt.Println(err)
+		coreLogger.Debug(err)
 		return fmt.Errorf("invalid hex storage key/value %q", text)
 	}
 	return nil
@@ -155,7 +155,6 @@ func SetupGenesisBlock(db database.Database, genesis *Genesis) (*config.ChainCon
 	// Just commit the new block if there is no stored genesis block.
 	stored := GetCanonicalHash(db, 0)
 	if (stored == common.Hash{}) {
-		//fmt.Println()
 		if genesis == nil {
 			log.Info("Writing default main-net genesis block")
 			genesis = DefaultGenesisBlock()
