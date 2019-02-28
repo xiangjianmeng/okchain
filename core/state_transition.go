@@ -17,24 +17,15 @@
 package core
 
 import (
-	"errors"
-	"fmt"
 	"math"
 	"math/big"
 
 	"github.com/ok-chain/okchain/common"
 	"github.com/ok-chain/okchain/config"
-	"github.com/ok-chain/okchain/core/state"
 	"github.com/ok-chain/okchain/core/vm"
 	logging "github.com/ok-chain/okchain/log"
 )
 
-var (
-	//ErrNonceTooHigh              = errors.New("Tx Nonce too high")
-	//ErrNonceTooLow               = errors.New("Tx Nonce too low")
-	//ErrInsufficientBalance       = errors.New("Tx InsufficientBalance error")
-	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
-)
 var coreLogger = logging.MustGetLogger("CORE")
 
 /*
@@ -192,9 +183,6 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
 	contractCreation := msg.To() == nil
-	coreLogger.Debugf("#########################################")
-	coreLogger.Debugf("#########################################")
-	coreLogger.Debugf("#########################################")
 	coreLogger.Debugf("msg.to:%+v", msg.To())
 
 	gas, err := IntrinsicGas(st.data, contractCreation, true)
@@ -220,7 +208,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
 	if vmerr != nil {
-		fmt.Println("VM returned with error", "err", vmerr)
+		coreLogger.Debug("VM returned with error", "err", vmerr)
 		// The only possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
@@ -233,34 +221,6 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	return ret, st.gasUsed(), vmerr != nil, err
 }
 
-// Call executes the contract associated with the addr with the given input as
-// parameters. It also handles any necessary value transfer required and takes
-// the necessary steps to create accounts and reverses the state in case of an
-// execution error or failed value transfer. XXX, should use EVM to execute transation. EVM to be added.
-func Call(state *state.StateDB, from, to common.Address, value *big.Int) (err error) {
-
-	// Fail if we're trying to transfer more than the available balance
-	if !CanTransfer(state, from, value) {
-		return ErrInsufficientBalance
-	}
-
-	// var (
-	// 	snapshot = state.Snapshot()
-	// )
-	if !state.Exist(to) {
-		state.CreateAccount(to)
-	}
-	Transfer(state, from, to, value)
-
-	// Initialise a new contract and set the code that is to be used by the EVM.
-
-	// When an error was returned by the EVM or when setting the creation code
-	// above we revert to the snapshot. Additionally
-	// if err != nil {
-	// 	state.RevertToSnapshot(snapshot)
-	// }
-	return nil
-}
 
 func (st *StateTransition) refundGas() {
 	// Apply refund counter, capped to half of the used gas.

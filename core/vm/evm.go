@@ -172,10 +172,6 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	contract := NewContract(caller, to, value, gas)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
-	vmLogger.Debugf("******************************************\n")
-	vmLogger.Debugf("******************************************\n")
-	vmLogger.Debugf("******************************************\n")
-	vmLogger.Debugf("******************************************\n")
 	vmLogger.Debugf("contract codehash: %+v\n", evm.StateDB.GetCodeHash(addr))
 
 	start := time.Now()
@@ -336,13 +332,8 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 
 	contractAddr = crypto.CreateAddress(caller.Address(), nonce)
 	contractHash := evm.StateDB.GetCodeHash(contractAddr)
-	vmLogger.Debugf("******************************************\n")
-	vmLogger.Debugf("******************************************\n")
-	vmLogger.Debugf("******************************************\n")
-	vmLogger.Debugf("******************************************\n")
-	vmLogger.Debugf("contract address: %+v\n", contractAddr)
+
 	vmLogger.Debugf("contract address string: %s\n", contractAddr.Hex())
-	vmLogger.Debugf("contract codehash: %+v\n", contractHash)
 	vmLogger.Debugf("contract codehash string: %s\n", contractHash.Hex())
 
 	if evm.StateDB.GetNonce(contractAddr) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
@@ -380,8 +371,6 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 	// be stored due to not enough gas set an error and let it be handled
 	// by the error checking condition below.
 	if err == nil && !maxCodeSizeExceeded {
-		//_, file, line, _ := runtime.Caller(0)
-		//fmt.Printf("file: %s,  line: %d\n", file, line)
 		createDataGas := uint64(len(ret)) * config.CreateDataGas
 		if contract.UseGas(createDataGas) {
 			evm.StateDB.SetCode(contractAddr, ret)
@@ -412,9 +401,7 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 		evm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
 	}
 	contractHash = evm.StateDB.GetCodeHash(contractAddr)
-	vmLogger.Debugf("created contract address: %+v\n", contractAddr)
 	vmLogger.Debugf("created contract address string: %s\n", contractAddr.Hex())
-	vmLogger.Debugf("created contract codehash: %+v\n", contractHash)
 	vmLogger.Debugf("created contract codehash string: %s\n", contractHash.Hex())
 	return ret, contractAddr, contract.Gas, err
 }
