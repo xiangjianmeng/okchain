@@ -17,7 +17,6 @@
 package core
 
 import (
-	"fmt"
 	"log"
 	"math/big"
 
@@ -57,12 +56,6 @@ func NewStateProcessor(config *config.ChainConfig, bc ChainContext) *StateProces
 // Process returns the receipts and logs accumulated during the process. If any of the
 // transactions failed to execute it will return an error.
 func (p *StateProcessor) Process(block *protos.TxBlock, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
-	log.SetFlags(log.Lshortfile)
-	// log.Printf("Process\n")
-	// var (
-	// 	header = block.Header()
-	// 	//allLogs []*types.Log
-	// )
 	var (
 		receipts types.Receipts
 		usedGas  = new(uint64)
@@ -74,14 +67,12 @@ func (p *StateProcessor) Process(block *protos.TxBlock, statedb *state.StateDB, 
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Body.Transactions {
 		statedb.Prepare(tx.Hash(), block.Hash(), block.Header.BlockNumber, i)
-		log.SetFlags(log.Lshortfile)
-		log.Printf("tx data: %+v\n", tx)
+		coreLogger.Debugf("tx data: %+v\n", tx)
 		receipt, gas, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
 			return nil, nil, 0, err
 		}
 		// set sharding leader reward according to tx gas used
-		fmt.Println("----------", p.peer.GetShardId(tx, block.Header.DSBlockNum), len(block.Header.ShardingLeadCoinBase))
 		statedb.AddBalance(common.BytesToAddress(block.Header.ShardingLeadCoinBase[p.peer.GetShardId(tx, block.Header.DSBlockNum)]), new(big.Int).SetUint64(gas*tx.GasPrice))
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
@@ -123,12 +114,10 @@ func ApplyTransaction(config *config.ChainConfig, bc ChainContext, author *commo
 
 	// Apply the transaction to the current state (included in the env)
 	_, gas, failed, err := ApplyMessage(vmenv, msg, gp)
-	//err = ApplyMessage(statedb, msg)
 	if err != nil {
 		return nil, 0, err
 	}
 	// Update the state with pending changes
-
 	var root []byte
 	statedb.Finalise(true)
 	*usedGas += gas

@@ -38,4 +38,6 @@ var (
 	ErrNonceTooLow = errors.New("nonce too low")
 
 	ErrInsufficientBalance = errors.New("insufficient balance for transfer")
+
+	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
 )
