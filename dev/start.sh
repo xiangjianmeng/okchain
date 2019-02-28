@@ -1,5 +1,21 @@
 #!/bin/bash
-source okchain.profile
+
+export http_proxy=""
+export https_proxy=""
+export ftp_proxy=""
+export no_proxy=""
+export HTTP_PROXY=""
+export HTTPS_PROXY=""
+export FTP_PROXY=""
+export NO_PROXY=""
+
+export OKCHAIN_PATH=github.com/ok-chain/okchain
+export OKCHAIN_TOP=${GOPATH}/src/github.com/ok-chain/okchain
+export BUILD_BIN=${OKCHAIN_TOP}/build/bin
+export PEER_CLIENT_BINARY=okchaind
+export OKCHAIN_DEV_SCRIPT_TOP=$OKCHAIN_TOP/dev
+export OKCHAIN_BASE_PORT=15000
+
 
 while getopts "s:n:lk" opt; do
   case $opt in
@@ -97,12 +113,7 @@ function main {
         exit
    fi
 
-   if [ -z ${ENV_LOCAL_HOST_IP} ]; then
-        echo Set ENV_LOCAL_HOST_IP in your terminal please! "export ENV_LOCAL_HOST_IP=192.168.*.*" E.g.
-        exit
-    fi
-
-    if [ ! -z ${BOOTNODE} ]; then
+   if [ ! -z ${BOOTNODE} ]; then
         killbyname okchain_node_
 
         echo "removing data"
