@@ -1522,8 +1522,8 @@ func newGossipInstanceWithCustomMCS(portPrefix int, id int, maxMsgCount int, mcs
 
 func bootPeers(portPrefix int, ids ...int) []string {
 	peers := []string{}
-	lookupAddress := viper.GetString("peer.lookupNodeUrl")
-	lookupAddressList := strings.Split(lookupAddress, "|")
+
+	lookupAddressList := strings.Split(viper.GetString("peer.lookupNodeUrl"), "|")
 	var lookupIpPort string
 	for _, addr := range lookupAddressList {
 		if len(addr) > 0 {
@@ -1538,6 +1538,9 @@ func bootPeers(portPrefix int, ids ...int) []string {
 		}
 		ipPort := strings.Split(lookupIpPort, ":")
 		if len(ipPort) > 0 {
+			if ipPort[0] == "" {
+				ipPort[0] = util.GetLocalIpAddr()
+			}
 			peers = append(peers, fmt.Sprintf("%s:%d", ipPort[0], id+portPrefix))
 		}
 	}
@@ -1549,40 +1552,22 @@ func bootPeers(portPrefix int, ids ...int) []string {
 func lookupPeers(isBoot bool) []string {
 	peers := []string{}
 	if !isBoot {
-		lookupAddress := viper.GetString("peer.lookupNodeUrl")
-		fmt.Println("lookup_url: ", lookupAddress)
-		lookupAddressList := strings.Split(lookupAddress, "|")
+		lookupAddressList := strings.Split(viper.GetString("peer.lookupNodeUrl"), "|")
+		for k, add := range lookupAddressList {
+			ipPort := strings.Split(add, ":")
+			if len(ipPort) <= 1 {
+				continue
+			}
+			if ipPort[0] == "" {
+				ipPort[0] = util.GetLocalIpAddr()
+			}
+			lookupAddressList[k] = ipPort[0] + ":" + ipPort[1]
+		}
+		fmt.Println("lookup_url: ", lookupAddressList)
 		return lookupAddressList
 	}
 	return peers
 }
-
-//func lookupPeers(isBoot bool) []string {
-//	peers := []string{}
-//	if !isBoot {
-//		lookupAddress := viper.GetString("peer.lookupNodeUrl")
-//		//fmt.Println("lookup_url: ", lookupAddress)
-//		lookupAddressList := strings.Split(lookupAddress, "|")
-//		fmt.Println("lookupAddressList: ", lookupAddressList)
-//		for _, addr := range lookupAddressList {
-//			if addr != "" {
-//				ipPort := strings.Split(addr, ":")
-//				if len(ipPort) > 1 {
-//					gossipPort := viper.GetInt("peer.gossip.listenPort")
-//					fmt.Println("gossipPort: ", gossipPort)
-//					port, err := strconv.Atoi(ipPort[1])
-//					if err != nil {
-//						fmt.Println("port_parse_error")
-//						return peers
-//					}
-//					peers = append(peers, fmt.Sprintf("%s:%d", ipPort[0], gossipPort-gossipPort%nodeSize+port%nodeSize))
-//				}
-//			}
-//		}
-//	}
-//	fmt.Println("boot_peers: ", peers)
-//	return peers
-//}
 
 type orgCryptoService struct {
 }

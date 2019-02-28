@@ -234,10 +234,13 @@ func (p *PeerServer) Init(gossipPort int, listenAddr string, grpcServer *grpc.Se
 	luAddList = strings.Split(strings.Trim(strings.Trim(viper.GetString("peer.lookupNodeUrl"), " "), "|"), "|")
 	var lookup []*pb.PeerEndpoint
 	var lookupIds []int
-	for _, lu := range luAddList {
+	for k, lu := range luAddList {
 		ipPort := strings.Split(lu, ":")
 		if len(ipPort) <= 1 {
 			continue
+		}
+		if ipPort[0] == "" {
+			ipPort[0] = GetLocalIP()
 		}
 		port, err := strconv.Atoi(ipPort[1])
 		if err != nil {
@@ -246,12 +249,14 @@ func (p *PeerServer) Init(gossipPort int, listenAddr string, grpcServer *grpc.Se
 			lookupIds = append(lookupIds, port%100)
 		}
 
+		lu = ipPort[0] + ":" + ipPort[1]
 		lookup = append(lookup,
 			&pb.PeerEndpoint{
 				Id:      &pb.PeerID{Name: lu},
 				Address: ipPort[0],
 				Port:    uint32(port),
 			})
+		luAddList[k] = lu
 	}
 	p.LookupNodes = lookup
 	peerLogger.Debugf("lookup node id: %d", lookupIds)
