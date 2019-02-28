@@ -76,54 +76,59 @@ func assignRwards(block *protos.TxBlock, statedb *state.StateDB, gasFeeTotal *bi
 	blockNum := block.Header.BlockNumber
 	yieldReward := new(big.Int).SetUint64(50 * config.Okp >> (blockNum / DAMPEDBLOCKS))
 	totalReward := new(big.Int).Add(gasFeeTotal, yieldReward)
-	// sort shard gas fee in ascending order.
-	shardsGasFeeList := sortByGasFee(gasFeeUsedShards)
-	shardGasFeePercentile := new(big.Int).SetUint64(100)
-	shardsBackupCnt := make(map[uint32]uint32)
-	shardsCnt := len(gasFeeUsedShards)
-	for i := 0; i < shardsCnt; i++ {
-		// TODO:change to true backup count of shard
-		shardsBackupCnt[shardsGasFeeList[i].ShardId] = 1
-	}
+	DSRewardTotal := new(big.Int)
+	if len(gasFeeUsedShards) >= 1 {
+		// sort shard gas fee in ascending order.
+		shardsGasFeeList := sortByGasFee(gasFeeUsedShards)
+		shardGasFeePercentile := new(big.Int).SetUint64(100)
+		shardsBackupCnt := make(map[uint32]uint32)
+		shardsCnt := len(gasFeeUsedShards)
+		for i := 0; i < shardsCnt; i++ {
+			// TODO:change to true backup count of shard
+			shardsBackupCnt[shardsGasFeeList[i].ShardId] = 1
+		}
 
-	// DSMoreRate imploys that DS is assigned more 10 percent out totalReward than shard.
-	DSMoreRate := new(big.Int).SetUint64(11 )
-	// compute shardAverageReward according to 1.1 * shardAverageReward + shardsCnt * shardAverageReward = totalReward.
-	shardAverageReward := new(big.Int).Div(new(big.Int).Mul(totalReward, new(big.Int).SetUint64(10 )),
-		new(big.Int).Add(DSMoreRate, new(big.Int).Mul(new(big.Int).SetUint64(10 ), new(big.Int).SetUint64(uint64(shardsCnt)))))
-	shardsRewardTotal := new(big.Int).Mul(new(big.Int).SetUint64(uint64(shardsCnt)), shardAverageReward)
-	DSRewardTotal := new(big.Int).Sub(totalReward, shardsRewardTotal)
-	// all shards reward except the last one.
-	shardsRewardNoLast := new(big.Int)
-	for i := 0; i < len(shardsGasFeeList)-1; i++ {
-		shardGasFee := shardsGasFeeList[i]
-		// calculate percent of shard in gasFeeTotal
-		shardPercent := new(big.Int).Div(new(big.Int).Mul(shardGasFee.GasFee, shardGasFeePercentile), gasFeeTotal)
-		shardReward := new(big.Int).Div(new(big.Int).Mul(shardsRewardTotal, shardPercent), shardGasFeePercentile)
-		shardsRewardNoLast.Add(shardsRewardNoLast, shardReward)
-		coreLogger.Debug("Sharding[", shardGasFee.ShardId, "]", shardReward)
-		// TODO:assign shardReward to every node of shard in average.
-		//shardNodeAverageReward := new(big.Int).Div(shardReward,
-		//	new(big.Int).SetUint64(uint64(shardsBackupCnt[shardGasFee.ShardId]+1)))
-		//for i := 0; i < int(shardsBackupCnt[shardGasFee.ShardId]); i++ {
-		//	coreLogger.Debug("Sharding[", shardGasFee.ShardId, "]", "Backup : ", shardNodeAverageReward)
-		//  statedb.AddBalance(common.BytesToAddress(block.Header.ShardingLeadCoinBase[shardGasFee.ShardId][i+1]), shardNodeAverageReward)
-		//	shardReward.Sub(shardReward, shardNodeAverageReward)
+		// DSMoreRate imploys that DS is assigned more 10 percent out totalReward than shard.
+		DSMoreRate := new(big.Int).SetUint64(11)
+		// compute shardAverageReward according to 1.1 * shardAverageReward + shardsCnt * shardAverageReward = totalReward.
+		shardAverageReward := new(big.Int).Div(new(big.Int).Mul(totalReward, new(big.Int).SetUint64(10)),
+			new(big.Int).Add(DSMoreRate, new(big.Int).Mul(new(big.Int).SetUint64(10), new(big.Int).SetUint64(uint64(shardsCnt)))))
+		shardsRewardTotal := new(big.Int).Mul(new(big.Int).SetUint64(uint64(shardsCnt)), shardAverageReward)
+		DSRewardTotal = DSRewardTotal.Sub(totalReward, shardsRewardTotal)
+		// all shards reward except the last one.
+		shardsRewardNoLast := new(big.Int)
+		for i := 0; i < len(shardsGasFeeList)-1; i++ {
+			shardGasFee := shardsGasFeeList[i]
+			// calculate percent of shard in gasFeeTotal
+			shardPercent := new(big.Int).Div(new(big.Int).Mul(shardGasFee.GasFee, shardGasFeePercentile), gasFeeTotal)
+			shardReward := new(big.Int).Div(new(big.Int).Mul(shardsRewardTotal, shardPercent), shardGasFeePercentile)
+			shardsRewardNoLast.Add(shardsRewardNoLast, shardReward)
+			coreLogger.Debug("Sharding[", shardGasFee.ShardId, "]", shardReward)
+			// TODO:assign shardReward to every node of shard in average.
+			//shardNodeAverageReward := new(big.Int).Div(shardReward,
+			//	new(big.Int).SetUint64(uint64(shardsBackupCnt[shardGasFee.ShardId]+1)))
+			//for i := 0; i < int(shardsBackupCnt[shardGasFee.ShardId]); i++ {
+			//	coreLogger.Debug("Sharding[", shardGasFee.ShardId, "]", "Backup : ", shardNodeAverageReward)
+			//  statedb.AddBalance(common.BytesToAddress(block.Header.ShardingLeadCoinBase[shardGasFee.ShardId][i+1]), shardNodeAverageReward)
+			//	shardReward.Sub(shardReward, shardNodeAverageReward)
+			//}
+			coreLogger.Debug("Sharding[", shardGasFee.ShardId, "]", "Leader : ", shardReward)
+			statedb.AddBalance(common.BytesToAddress(block.Header.ShardingLeadCoinBase[shardGasFee.ShardId]), shardReward)
+		}
+		// assign last shard reward
+		lastShardReward := new(big.Int).Sub(shardsRewardTotal, shardsRewardNoLast)
+		coreLogger.Debug("Sharding[", shardsGasFeeList[len(shardsGasFeeList)-1].ShardId, "]", " : ", lastShardReward)
+		//lastShardAverageReward := new(big.Int).Div(lastShardReward,
+		//	new(big.Int).SetUint64(uint64(shardsBackupCnt[shardsGasFeeList[len(shardsGasFeeList)-1].ShardId]+1)))
+		//for i := 0; i < int(shardsBackupCnt[shardsGasFeeList[len(shardsGasFeeList)-1].ShardId]); i++ {
+		//	fmt.Println("Sharding[", shardsGasFeeList[len(shardsGasFeeList)-1].ShardId, "]", "Backup : ", lastShardAverageReward)
+		//	lastShardReward.Sub(lastShardReward, lastShardAverageReward)
 		//}
-		coreLogger.Debug("Sharding[", shardGasFee.ShardId, "]", "Leader : ", shardReward)
-		statedb.AddBalance(common.BytesToAddress(block.Header.ShardingLeadCoinBase[shardGasFee.ShardId]), shardReward)
+		coreLogger.Debug("Sharding[", shardsGasFeeList[len(shardsGasFeeList)-1].ShardId, "]", "Leader : ", lastShardReward)
+		statedb.AddBalance(common.BytesToAddress(block.Header.ShardingLeadCoinBase[shardsGasFeeList[len(shardsGasFeeList)-1].ShardId]), lastShardReward)
+	} else {
+		DSRewardTotal.Set(totalReward)
 	}
-	// assign last shard reward
-	lastShardReward := new(big.Int).Sub(shardsRewardTotal, shardsRewardNoLast)
-	coreLogger.Debug("Sharding[", shardsGasFeeList[len(shardsGasFeeList)-1].ShardId, "]", " : ", lastShardReward)
-	//lastShardAverageReward := new(big.Int).Div(lastShardReward,
-	//	new(big.Int).SetUint64(uint64(shardsBackupCnt[shardsGasFeeList[len(shardsGasFeeList)-1].ShardId]+1)))
-	//for i := 0; i < int(shardsBackupCnt[shardsGasFeeList[len(shardsGasFeeList)-1].ShardId]); i++ {
-	//	fmt.Println("Sharding[", shardsGasFeeList[len(shardsGasFeeList)-1].ShardId, "]", "Backup : ", lastShardAverageReward)
-	//	lastShardReward.Sub(lastShardReward, lastShardAverageReward)
-	//}
-	coreLogger.Debug("Sharding[", shardsGasFeeList[len(shardsGasFeeList)-1].ShardId, "]", "Leader : ", lastShardReward)
-	statedb.AddBalance(common.BytesToAddress(block.Header.ShardingLeadCoinBase[shardsGasFeeList[len(shardsGasFeeList)-1].ShardId]), lastShardReward)
 	// assign DS reward
 	DsBackupCnt := new(big.Int).SetInt64(int64(len(block.Header.DSCoinBase) - 1))
 	// DSLeaderMoreRate imploys that DSLeader is assigned more 10 percent out DSRewardTotal than shard.
@@ -134,8 +139,10 @@ func assignRwards(block *protos.TxBlock, statedb *state.StateDB, gasFeeTotal *bi
 	for i := 1; i < len(block.Header.DSCoinBase); i++ {
 		statedb.AddBalance(common.BytesToAddress(block.Header.DSCoinBase[i]), DSBackupAverageReward)
 		DSRewardTotal.Sub(DSRewardTotal, DSBackupAverageReward)
+		coreLogger.Debug("DSBackup : ", DSBackupAverageReward)
 	}
 	statedb.AddBalance(common.BytesToAddress(block.Header.DSCoinBase[0]), DSRewardTotal)
+	coreLogger.Debug("DSLeader : ", DSRewardTotal)
 }
 
 // Process processes the state changes according to the Ethereum rules by running
