@@ -35,10 +35,6 @@ func main() {
 			fmt.Printf("--------------node[%s]------------------\n", addr)
 			PrintLatestDsBlock(addr)
 			PrintLatestTxBlock(addr)
-			// PrintBalance(addr, "0x000066c8be8393e41791dfd7b8a47fe43f3e0890")
-			// PrintBalance(addr, "0x000166c8be8393e41791dfd7b8a47fe43f3e0890")
-			// PrintBalance(addr, "0x000266c8be8393e41791dfd7b8a47fe43f3e0890")
-			// PrintBalance(addr, acc2)
 		}()
 	}
 }

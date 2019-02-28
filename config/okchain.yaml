@@ -4,17 +4,14 @@ peer:
     publicKey: publicKey
     privateKey: privateKey
 
-    # overwritten by dev/runokchain.sh
     listenAddress: 0.0.0.0:15001
 
-    # overwritten by dev/runokchain.sh
     lookupNodeUrl: 0.0.0.0:14001
     dataDir: ./
 
     gossipPortPrefix: 37000
 
-    # overwritten by dev/runokchain.sh
-    mode: 
+    mode:
 
     jsonrpcAddress: 0.0.0.0:16001
     enablepprof: true # or false
@@ -31,7 +28,7 @@ logging:
     #     CRITICAL | ERROR | WARNING | NOTICE | INFO | DEBUG
     # 1. The --logging-level=<level> command line option overrides all other
     #    specifications.
-    # 2. The environment variable CORE_LOGGING_LEVEL otherwise applies to
+    # 2. The environment variable OKCHAIN_LOGGING_LEVEL otherwise applies to
     #    all peer commands if defined as a non-empty string.
     # options.
     level: debug
