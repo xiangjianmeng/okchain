@@ -1,3 +1,5 @@
+// Copyright The go-okchain Authors 2018,  All rights reserved.
+
 // Copyright 2017 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -17,18 +19,16 @@
 package config
 
 const (
-	// These are the multipliers for ether denominations.
-	// Example: To get the wei value of an amount in 'douglas', use
+	// These are the multipliers for okchain denominations.
+	// Example: To get the Mercury value of an amount in 'Okp', use
 	//
-	//    new(big.Int).Mul(value, big.NewInt(config.Douglas))
+	//    value, config.Douglas
 	//
-	Wei      = 1
-	Ada      = 1e3
-	Babbage  = 1e6
-	Shannon  = 1e9
-	Szabo    = 1e12
-	Finney   = 1e15
-	Ether    = 1e18
-	Einstein = 1e21
-	Douglas  = 1e42
+
+	Mercury = 1
+	Venus   = 1e2
+	Earth	= 1e4
+	Mars	= 1e6
+	Jupiter	= 1e8
+	Okp	    = 1e10
 )
