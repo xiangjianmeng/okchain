@@ -30,9 +30,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/ok-chain/okchain/config"
+	ps "github.com/ok-chain/okchain/core/server"
 	"github.com/ok-chain/okchain/crypto/multibls"
 	logging "github.com/ok-chain/okchain/log"
-	ps "github.com/ok-chain/okchain/core/server"
 	pb "github.com/ok-chain/okchain/protos"
 )
 
@@ -132,14 +132,19 @@ func (r *RoleIdle) ProcessFinalBlock(pbMsg *pb.Message, from *pb.PeerEndpoint) e
 		// call miner function
 		pk := multibls.PubKey{}
 		pk.Deserialize(r.peerServer.SelfNode.Pubkey)
-		miningResult, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
-
+		miningResult, diff, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
 		if err != nil {
 			return err
 		}
 
-		powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey)
+		// issue#9  whether the block is updated after mining
+		newDsBlock := r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock)
+		if curDsBlock.NumberU64() != newDsBlock.NumberU64() {
+			idleLogger.Warningf("dsblock is updated to %d, i will ignore the PoWSubmission", newDsBlock.NumberU64())
+			return nil
+		}
 
+		powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey, diff)
 		data, err := proto.Marshal(powSubmission)
 		if err != nil {
 			idleLogger.Errorf("PoWSubmission marshal error %s", err.Error())
@@ -272,12 +277,12 @@ func (r *RoleIdle) ProcessStartPoW(powmsg *pb.Message, from *pb.PeerEndpoint) er
 	pk := multibls.PubKey{}
 	pk.Deserialize(r.peerServer.PublicKey)
 
-	miningResult, err := r.mining(pk.GetHexString(), inform.Pow.BlockNum)
+	miningResult, diff, err := r.mining(pk.GetHexString(), inform.Pow.BlockNum)
 	if err != nil {
 		return ErrMine
 	}
 
-	powSubmission := r.composePoWSubmission(miningResult, inform.Pow.BlockNum, r.peerServer.SelfNode.Pubkey)
+	powSubmission := r.composePoWSubmission(miningResult, inform.Pow.BlockNum, r.peerServer.SelfNode.Pubkey, diff)
 	data, err := proto.Marshal(powSubmission)
 	if err != nil {
 		idleLogger.Errorf("PoWSubmission marshal failed with error: %s", err.Error())

@@ -12,8 +12,8 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/ok-chain/okchain/config"
-	"github.com/ok-chain/okchain/crypto/multibls"
 	ps "github.com/ok-chain/okchain/core/server"
+	"github.com/ok-chain/okchain/crypto/multibls"
 	pb "github.com/ok-chain/okchain/protos"
 )
 
@@ -197,13 +197,12 @@ func initShardingNodeInfo(peerServer *ps.PeerServer, dsblock *pb.DSBlock) {
 func startPowLead(r *RoleShardingLead, txblock *pb.TxBlock) error {
 	pk := multibls.PubKey{}
 	pk.Deserialize(r.peerServer.SelfNode.Pubkey)
-	miningResult, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
-
+	miningResult, diff, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
 	if err != nil {
 		return err
 	}
 
-	powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey)
+	powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey, diff)
 
 	loggerShardingBase.Debugf("powsubmission is %+v", powSubmission)
 
@@ -238,13 +237,12 @@ func startPowLead(r *RoleShardingLead, txblock *pb.TxBlock) error {
 func startPowBackup(r *RoleShardingBackup, txblock *pb.TxBlock) error {
 	pk := multibls.PubKey{}
 	pk.Deserialize(r.peerServer.SelfNode.Pubkey)
-	miningResult, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
-
+	miningResult, diff, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
 	if err != nil {
 		return err
 	}
 
-	powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey)
+	powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey, diff)
 
 	loggerShardingBase.Debugf("powsubmission is %+v", powSubmission)
 

@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	ps "github.com/ok-chain/okchain/core/server"
 	"github.com/ok-chain/okchain/crypto/multibls"
 	logging "github.com/ok-chain/okchain/log"
-	ps "github.com/ok-chain/okchain/core/server"
 	pb "github.com/ok-chain/okchain/protos"
 )
 
@@ -139,10 +139,10 @@ func (r *RoleShardingBase) ProcessFinalBlock(pbMsg *pb.Message, from *pb.PeerEnd
 
 	r.onFinalBlockReady(txblock)
 
-	numOfSharding := len(r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Body.ShardingNodes) / r.peerServer.GetShardingSize()
-
+	curDsBlock := r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock)
+	numOfSharding := len(curDsBlock.Body.ShardingNodes) / r.peerServer.GetShardingSize()
 	if (numOfSharding != 0 && txblock.Header.BlockNumber%uint64(r.peerServer.GetShardingSize()) == 0) ||
-		(numOfSharding == 0 && txblock.Header.BlockNumber%uint64(len(r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Body.ShardingNodes)) == 0) {
+		(numOfSharding == 0 && txblock.Header.BlockNumber%uint64(len(curDsBlock.Body.ShardingNodes)) == 0) {
 		// start pow
 		loggerShardingBase.Debugf("start pow, waiting for find a results")
 
@@ -152,16 +152,20 @@ func (r *RoleShardingBase) ProcessFinalBlock(pbMsg *pb.Message, from *pb.PeerEnd
 		// call miner function
 		pk := multibls.PubKey{}
 		pk.Deserialize(r.peerServer.SelfNode.Pubkey)
-		miningResult, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
-
+		miningResult, diff, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
 		if err != nil {
 			return ErrMine
 		}
 
-		powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey)
+		// issue#9  whether the block is updated after mining
+		newDsBlock := r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock)
+		if curDsBlock.NumberU64() != newDsBlock.NumberU64() {
+			idleLogger.Warningf("dsblock is updated to %d, i will ignore the PoWSubmission", newDsBlock.NumberU64())
+			return nil
+		}
 
+		powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey, diff)
 		loggerShardingBase.Debugf("powsubmission is %+v", powSubmission)
-
 		data, err := proto.Marshal(powSubmission)
 		if err != nil {
 			loggerShardingBase.Errorf("PoWSubmission marshal error %s", err.Error())
