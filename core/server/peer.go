@@ -1014,7 +1014,7 @@ func (p *PeerServer) GetPowDifficulty() int64 {
 		return max(lastDiff+(lastDiff/2048*(int64(curDsBlock.Header.PowSubmissionNum)-MaxNodeNum)/128), MinDiff)
 	}
 	if int64(curDsBlock.Header.ShardingSum) <= MinShardingSum {
-		return max(lastDiff+(lastDiff/2048*(MinShardingSum-int64(curDsBlock.Header.ShardingSum))*128), MinDiff)
+		return max(lastDiff+(lastDiff/2048*(int64(curDsBlock.Header.ShardingSum)-MinShardingSum)*128), MinDiff)
 	}
 	i := int64((curDsBlock.NumberU64()-1))*int64(shardingSize) + 1
 	var j int64 = 0
