@@ -227,7 +227,7 @@ func (r *RoleIdle) ProcessSetPrimary(rawMsg *pb.Message, from *pb.PeerEndpoint) 
 	if myAddr != inform.Leader.Id.Name {
 		newRole.(*RoleDsBackup).dsConsensusBackup.UpdateLeader(r.peerServer.Committee[id])
 	}
-	ctx, cancle := context.WithTimeout(context.Background(), config.TIMEOUT_POW_SUBMISSION)
+	ctx, cancle := context.WithTimeout(context.Background(), time.Duration(r.peerServer.GetWait4PoWTime())*time.Second)
 	go newRole.Wait4PoWSubmission(ctx, cancle)
 
 	r.peerServer.DumpRoleAndState()
