@@ -990,6 +990,9 @@ func (p *PeerServer) readConfig() {
 }
 
 func (p *PeerServer) GetPowDifficulty() int64 {
+	if !viper.GetBool("mining.difficulty.auto") {
+		return powDifficulty
+	}
 	var MinDiff = powDifficulty
 	var TxSize int64 = 400
 	var MaxMicroBlockTxNum int64 = 100

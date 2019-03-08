@@ -46,10 +46,10 @@ ledger:
     state:
 
 sharding:
-  size: 4
+  size: 5
 
 ds:
-  size: 4
+  size: 5
 
 consensus:
   powDifficulty: 100000
@@ -58,3 +58,7 @@ consensus:
 
 account:
   keystoreDir:
+
+mining:
+  difficulty:
+    auto: false # true: automatic change
