@@ -61,4 +61,4 @@ account:
 
 mining:
   difficulty:
-    auto: true # true: automatic change
+    auto: false # true: automatic change
