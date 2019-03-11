@@ -88,7 +88,7 @@ func assignRwards(block *protos.TxBlock, statedb *state.StateDB, gasFeeTotal *bi
 			shardsBackupCnt[shardsGasFeeList[i].ShardId] = 1
 		}
 
-		// DSMoreRate imploys that DS is assigned more 10 percent out totalReward than shard.
+		// DSMoreRate implies that DS is assigned more 10 percent out totalReward than shard.
 		DSMoreRate := new(big.Int).SetUint64(11)
 		// compute shardAverageReward according to 1.1 * shardAverageReward + shardsCnt * shardAverageReward = totalReward.
 		shardAverageReward := new(big.Int).Div(new(big.Int).Mul(totalReward, new(big.Int).SetUint64(10)),
@@ -131,7 +131,7 @@ func assignRwards(block *protos.TxBlock, statedb *state.StateDB, gasFeeTotal *bi
 	}
 	// assign DS reward
 	DsBackupCnt := new(big.Int).SetInt64(int64(len(block.Header.DSCoinBase) - 1))
-	// DSLeaderMoreRate imploys that DSLeader is assigned more 10 percent out DSRewardTotal than shard.
+	// DSLeaderMoreRate implies that DSLeader is assigned more 10 percent out DSRewardTotal than shard.
 	DSLeaderMoreRate := new(big.Int).SetUint64(11 )
 	// compute shardAverageReward according to 1.1 * DSBackupAverageReward + DsBackupCnt * DSBackupAverageReward = totalReward.
 	DSBackupAverageReward := new(big.Int).Div(new(big.Int).Mul(DSRewardTotal, new(big.Int).SetUint64(10 )),

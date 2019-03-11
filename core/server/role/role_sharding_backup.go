@@ -175,13 +175,18 @@ func (r *RoleShardingBackup) verifyMicroBlock(msg *pb.Message, consensusType pb.
 	return nil
 }
 
-func (r *RoleShardingBackup) produceFinalResponse(block proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
+func (r *RoleShardingBackup) produceResponse(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
 	var err error
+	block, err := r.getConsensusData(consensusType)
+	if err != nil {
+		// TODO
+		return nil, ErrHandleInCurrentState
+	}
 	switch consensusType {
 	case pb.ConsensusType_MicroBlockConsensus:
-		err = r.preConsensusProcessMicroBlock(block, envelope, payload)
+		err = r.preConsensusProcessMicroBlock(block, envelope, consensusType)
 	case pb.ConsensusType_ViewChangeConsensus:
-		err = r.preConsensusProcessVCBlock(block, envelope, payload)
+		err = r.preConsensusProcessVCBlock(block, envelope, consensusType)
 	default:
 		return nil, ErrHandleInCurrentState
 	}
@@ -192,7 +197,7 @@ func (r *RoleShardingBackup) produceFinalResponse(block proto.Message, envelope 
 	return envelope, nil
 }
 
-func (r *RoleShardingBackup) preConsensusProcessMicroBlock(block proto.Message, response *pb.Message, payload *pb.ConsensusPayload) error {
+func (r *RoleShardingBackup) preConsensusProcessMicroBlock(block proto.Message, response *pb.Message, consensusType pb.ConsensusType) error {
 	sign := r.peerServer.PrivateKey.BlSSign(r.currentMicroBlock.Hash().Bytes())
 	r.currentMicroBlock.Header.Signature = sign.Serialize()
 
@@ -203,7 +208,7 @@ func (r *RoleShardingBackup) preConsensusProcessMicroBlock(block proto.Message, 
 	}
 	response.Signature = sig
 
-	data, err := r.produceConsensusPayload(r.GetCurrentMicroBlock(), pb.ConsensusType_MicroBlockConsensus)
+	data, err := r.produceConsensusPayload(r.GetCurrentMicroBlock(), consensusType)
 	if err != nil {
 		return err
 	}
@@ -211,7 +216,7 @@ func (r *RoleShardingBackup) preConsensusProcessMicroBlock(block proto.Message, 
 	return nil
 }
 
-func (r *RoleShardingBackup) preConsensusProcessVCBlock(block proto.Message, response *pb.Message, payload *pb.ConsensusPayload) error {
+func (r *RoleShardingBackup) preConsensusProcessVCBlock(block proto.Message, response *pb.Message, consensusType pb.ConsensusType) error {
 	sign := r.peerServer.PrivateKey.BlSSign(r.GetCurrentVCBlock().Hash().Bytes())
 	r.GetCurrentVCBlock().Header.Signature = sign.Serialize()
 
@@ -222,7 +227,7 @@ func (r *RoleShardingBackup) preConsensusProcessVCBlock(block proto.Message, res
 	}
 	response.Signature = sig
 
-	data, err := r.produceConsensusPayload(r.GetCurrentVCBlock(), pb.ConsensusType_ViewChangeConsensus)
+	data, err := r.produceConsensusPayload(r.GetCurrentVCBlock(), consensusType)
 	if err != nil {
 		return err
 	}

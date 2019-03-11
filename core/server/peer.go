@@ -934,6 +934,7 @@ func (p *PeerServer) Sync() {
 	}()
 }
 
+// TODO: delete this function after being replaced with MessageVerify.
 func (p *PeerServer) MsgVerify(message *pb.Message, hash []byte) error {
 	ret, err := p.MsgSinger.VerifyHash(hash, message.Signature, message.Peer.Pubkey)
 	if err != nil {
@@ -942,6 +943,46 @@ func (p *PeerServer) MsgVerify(message *pb.Message, hash []byte) error {
 
 	if !ret {
 		return errors.New("check signature failed")
+	}
+	return nil
+}
+
+func (p *PeerServer) MessageVerify(message *pb.Message) error {
+	msgSignature := message.Signature
+	message.Signature = nil
+	msgHashBytes := util.Hash(message).Bytes()
+	ret, err := p.MsgSinger.VerifyHash(msgHashBytes, msgSignature, message.Peer.Pubkey)
+	message.Signature = msgSignature
+	if err != nil {
+		return err
+	}
+	if !ret {
+		return errors.New("check signature failed")
+	}
+	return nil
+}
+
+func (p *PeerServer) VerifyMultiSignByBoolMap(boolMap []bool, committeeSort pb.PeerEndpointList, signature *multibls.Sig, hash []byte, expected int) error {
+	if len(boolMap) != len(committeeSort) {
+		return fmt.Errorf("boolMap length not equal to committeeSort length")
+	}
+	counter := 0
+	multiPubkey2 := &multibls.PubKey{}
+
+	for i := 0; i < len(boolMap); i++ {
+		pubKey := multibls.PubKey{}
+		if boolMap[i] {
+			pubKey.Deserialize(committeeSort[i].Pubkey)
+			multiPubkey2.Add(&pubKey.PublicKey)
+			counter++
+		}
+	}
+	if counter < expected {
+		return fmt.Errorf("signatures are not enough")
+	}
+	verified := signature.BLSVerify(multiPubkey2, hash)
+	if !verified {
+		return fmt.Errorf("verifying signatures failed")
 	}
 	return nil
 }

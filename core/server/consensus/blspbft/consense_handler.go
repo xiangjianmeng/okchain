@@ -68,6 +68,17 @@ func (ch *ConsensusHandler) VerifyMessage(msg *pb.Message, from *pb.PeerEndpoint
 }
 
 // compose final response message according to current consensus type
+func (ch *ConsensusHandler) ComposedResponse(r ps.IRole) (*pb.Message, error) {
+	loggerCHandler.Debugf("compose response message in %s", pb.ConsensusType_name[int32(ch.currentType)])
+	msg, err := r.ComposeResponse(ch.currentType)
+	if err != nil {
+		loggerCHandler.Debugf("compose response message error: %s", err.Error())
+		return nil, ErrComposeMessage
+	}
+	return msg, nil
+}
+
+// compose final response message according to current consensus type
 func (ch *ConsensusHandler) ComposedFinalResponse(r ps.IRole) (*pb.Message, error) {
 	loggerCHandler.Debugf("compose final response message in %s", pb.ConsensusType_name[int32(ch.currentType)])
 	msg, err := r.ComposeFinalResponse(ch.currentType)

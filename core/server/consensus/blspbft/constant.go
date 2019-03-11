@@ -35,6 +35,7 @@ const (
 	COLLECTIVESIG_DONE      ConsensusState_Type = 5
 	FINALCHALLENGE_DONE     ConsensusState_Type = 7
 	FINALCOLLECTIVESIG_DONE ConsensusState_Type = 9
+	BROADCASTBLOCK_DONE		ConsensusState_Type = 11
 
 	// for backup
 	COMMIT_DONE        ConsensusState_Type = 2

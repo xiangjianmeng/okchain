@@ -64,6 +64,7 @@ message Message {                   //消息结构
         Consensus_FinalChallenge = 307;
         Consensus_FinalResponse = 308;
         Consensus_FinalCollectiveSig = 309;
+        Consensus_BroadCastBlock     = 310;
         // Node_xxx = ...;
     }
     Type type = 1;              //消息类型，格式为节点类型_消息类别
@@ -302,4 +303,24 @@ message InformSharding{
     int32 ShardingSize = 2;
 	repeated PeerEndpoint DsList = 3;
     repeated PeerEndpoint ShardingList = 4;
+}
+
+message BoolMapSignature{
+    repeated bool boolMap = 1;
+    bytes signature = 2;
+}
+
+message TxBlockWithSig2{
+    TxBlock Block = 1;
+    BoolMapSignature Sig2 = 2;
+}
+
+message DSBlockWithSig2{
+    DSBlock Block = 1;
+    BoolMapSignature Sig2 = 2;
+}
+
+message VCBlockWithSig2{
+    VCBlock Block = 1;
+    BoolMapSignature Sig2 = 2;
 }

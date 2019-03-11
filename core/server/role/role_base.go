@@ -45,7 +45,7 @@ const (
 	MICROBLOCK_MAXCOMPOSETX_NUMBER int   = 10000
 )
 
-type runConsensus func(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error)
+type runConsensus func(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error)
 type Consensus2FuncMapType map[pb.Message_Type]runConsensus
 
 type RoleBase struct {
@@ -79,18 +79,28 @@ func (r *RoleBase) getConsensusFunc(consensusType pb.ConsensusType, messageType 
 func (r *RoleBase) buildConsensusFuncMap() {
 	r.consensusFuncMap = make(map[pb.Message_Type]runConsensus)
 	r.consensusFuncMap[pb.Message_Consensus_Announce] =
-		func(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
-			return r.imp.produceAnnounce(input, envelope, payload, consensusType)
-		}
-
-	r.consensusFuncMap[pb.Message_Consensus_FinalResponse] =
-		func(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
-			return r.imp.produceFinalResponse(input, envelope, payload, consensusType)
+		func(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
+			return r.imp.produceAnnounce(envelope, consensusType)
 		}
 
 	r.consensusFuncMap[pb.Message_Consensus_FinalCollectiveSig] =
-		func(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
-			return r.imp.produceFinalCollectiveSig(input, envelope, payload, consensusType)
+		func(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
+			return r.imp.produceFinalCollectiveSig(envelope, consensusType)
+		}
+
+	r.consensusFuncMap[pb.Message_Consensus_Response] =
+		func(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
+			return r.imp.produceResponse(envelope, consensusType)
+		}
+
+	r.consensusFuncMap[pb.Message_Consensus_FinalResponse] =
+		func(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
+			return r.imp.produceFinalResponse(envelope, consensusType)
+		}
+
+	r.consensusFuncMap[pb.Message_Consensus_BroadCastBlock] =
+		func(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
+			return r.imp.produceBroadCastBlock(envelope, consensusType)
 		}
 }
 
@@ -270,23 +280,13 @@ func (r *RoleBase) produceConsensusMessage(consensusType pb.ConsensusType, msgTy
 	envelope.Timestamp = pb.CreateUtcTimestamp()
 	envelope.Peer = r.peerServer.SelfNode
 
-	payload := &pb.ConsensusPayload{}
-	payload.Type = consensusType
-
 	produceFunc, err := r.getConsensusFunc(consensusType, msgType)
 	if err != nil {
 		return nil, ErrInvalidMessage
 	}
 
-	input, err := r.imp.getConsensusData(consensusType)
-
-	if err != nil {
-		// TODO
-		return nil, ErrHandleInCurrentState
-	}
-
 	// TODO: alternative: generate input and payload in produceFunc, rather than here
-	return produceFunc(input, envelope, payload, consensusType)
+	return produceFunc(envelope, consensusType)
 }
 
 func (r *RoleBase) updateDSBlockRand() string {

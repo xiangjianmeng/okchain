@@ -216,13 +216,14 @@ func (r *RoleShardingLead) OnViewChangeConsensusStarted() error {
 	return nil
 }
 
-func (r *RoleShardingLead) produceAnnounce(block proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
+func (r *RoleShardingLead) produceAnnounce(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
 	var err error
+	block, err := r.getConsensusData(consensusType)
 	switch consensusType {
 	case pb.ConsensusType_MicroBlockConsensus:
-		err = r.preConsensusProcessMicroBlock(block, envelope, payload)
+		err = r.preConsensusProcessMicroBlock(block, envelope, consensusType)
 	case pb.ConsensusType_ViewChangeConsensus:
-		err = r.preConsensusProcessVCBlock(block, envelope, payload)
+		err = r.preConsensusProcessVCBlock(block, envelope, consensusType)
 	default:
 		return nil, ErrHandleInCurrentState
 	}
@@ -233,7 +234,7 @@ func (r *RoleShardingLead) produceAnnounce(block proto.Message, envelope *pb.Mes
 	return envelope, nil
 }
 
-func (r *RoleShardingLead) preConsensusProcessMicroBlock(block proto.Message, announce *pb.Message, _ *pb.ConsensusPayload) error {
+func (r *RoleShardingLead) preConsensusProcessMicroBlock(block proto.Message, announce *pb.Message, consensusType pb.ConsensusType) error {
 	var microBlock *pb.MicroBlock
 	var ok bool
 	if microBlock, ok = block.(*pb.MicroBlock); ok {
@@ -245,7 +246,7 @@ func (r *RoleShardingLead) preConsensusProcessMicroBlock(block proto.Message, an
 		announce.Signature = sig
 	}
 
-	data, err := r.produceConsensusPayload(microBlock, pb.ConsensusType_MicroBlockConsensus)
+	data, err := r.produceConsensusPayload(microBlock, consensusType)
 	if err != nil {
 		return err
 	}
@@ -253,7 +254,7 @@ func (r *RoleShardingLead) preConsensusProcessMicroBlock(block proto.Message, an
 	return nil
 }
 
-func (r *RoleShardingLead) preConsensusProcessVCBlock(block proto.Message, announce *pb.Message, _ *pb.ConsensusPayload) error {
+func (r *RoleShardingLead) preConsensusProcessVCBlock(block proto.Message, announce *pb.Message, consensusType pb.ConsensusType) error {
 	var vcblock *pb.VCBlock
 	var ok bool
 	if vcblock, ok = block.(*pb.VCBlock); ok {
@@ -265,7 +266,7 @@ func (r *RoleShardingLead) preConsensusProcessVCBlock(block proto.Message, annou
 		announce.Signature = sig
 	}
 
-	data, err := r.produceConsensusPayload(vcblock, pb.ConsensusType_ViewChangeConsensus)
+	data, err := r.produceConsensusPayload(vcblock, consensusType)
 	if err != nil {
 		return err
 	}

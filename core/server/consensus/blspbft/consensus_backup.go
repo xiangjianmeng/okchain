@@ -27,6 +27,7 @@ import (
 	"math"
 	"reflect"
 	"sort"
+	"fmt"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/ok-chain/okchain/core/blockchain"
@@ -72,6 +73,8 @@ func (cb *ConsensusBackup) ProcessConsensusMsg(msg *pb.Message, from *pb.PeerEnd
 		cb.processMessageAnnounce(msg, from)
 	case pb.Message_Consensus_FinalCollectiveSig:
 		cb.processMessageFinalCollectiveSig(msg, from)
+	case pb.Message_Consensus_BroadCastBlock:
+		cb.processMessageBroadCastBlock(msg, from)
 	default:
 		return ErrInvalidMessage
 	}
@@ -89,8 +92,15 @@ func (cb *ConsensusBackup) send2Lead(res *pb.Message) error {
 }
 
 func (cb *ConsensusBackup) processMessageAnnounce(msg *pb.Message, from *pb.PeerEndpoint) error {
+	var err error
+	// verify message.
+	err = cb.peerServer.MessageVerify(msg)
+	if err != nil {
+		loggerBackup.Errorf("message signature verify failed with error: %s", err.Error())
+		return ErrVerifyMessage
+	}
 	// 1. verify block
-	err := consensusHandler.VerifyMessage(msg, from, cb.role)
+	err = consensusHandler.VerifyMessage(msg, from, cb.role)
 	if err != nil {
 		return ErrVerifyBlock
 	} else {
@@ -98,7 +108,7 @@ func (cb *ConsensusBackup) processMessageAnnounce(msg *pb.Message, from *pb.Peer
 	}
 
 	// 2. compose final response message
-	response, err := consensusHandler.ComposedFinalResponse(cb.role)
+	response, err := consensusHandler.ComposedResponse(cb.role)
 	if err != nil {
 		return ErrComposeMessage
 	}
@@ -111,13 +121,51 @@ func (cb *ConsensusBackup) processMessageAnnounce(msg *pb.Message, from *pb.Peer
 }
 
 func (cb *ConsensusBackup) processMessageFinalCollectiveSig(msg *pb.Message, from *pb.PeerEndpoint) error {
-	// verify final collectivesig message
-	err := cb.verifyBlock(msg, from, consensusHandler.currentType)
+	var err error
+	// check if message is changed
+	err = cb.peerServer.MessageVerify(msg)
 	if err != nil {
-		loggerBackup.Errorf("verify final collectivesig message failed, error: %s", err.Error())
-		return ErrVerifyBlock
+		loggerBackup.Errorf("verifying signature of final collective message failed with error: %s", err.Error())
+		return ErrVerifyMessage
+	}
+	// verify multiple signature in round 1.
+	err = cb.verifyBlockSig1(msg, from, consensusHandler.currentType)
+	if err != nil {
+		loggerBackup.Errorf("verifying payload of final collectivesig message failed, error: %s", err.Error())
+		return ErrVerifyMessage
 	} else {
-		loggerBackup.Debugf("verify final collectivesig message pass")
+		loggerBackup.Debugf("verifying payload of final collectivesig message pass")
+	}
+
+	// compose final response message
+	finalResponse, err := consensusHandler.ComposedFinalResponse(cb.role)
+	if err != nil {
+		return ErrComposeMessage
+	}
+
+	loggerBackup.Debugf("final response is %+v", finalResponse)
+
+	// send result to leader
+	cb.send2Lead(finalResponse)
+	return nil
+}
+
+
+func (cb *ConsensusBackup) processMessageBroadCastBlock(msg *pb.Message, from *pb.PeerEndpoint) error {
+	var err error
+	// verify message
+	err = cb.peerServer.MessageVerify(msg)
+	if err != nil {
+		loggerBackup.Errorf("verify signature of broadcast message failed, error: %s", err.Error())
+		return ErrVerifyMessage
+	}
+	// verify broadcast block message
+	err = cb.verifyBlock(msg, from, consensusHandler.currentType)
+	if err != nil {
+		loggerBackup.Errorf("verify payload of broadcast message failed, error: %s", err.Error())
+		return ErrVerifyMessage
+	} else {
+		loggerBackup.Debugf("verify payload of broadcast message  pass")
 	}
 
 	// notify sharding backup or ds backup
@@ -130,6 +178,75 @@ func (cb *ConsensusBackup) processMessageFinalCollectiveSig(msg *pb.Message, fro
 
 func (cb *ConsensusBackup) GetCurrentLeader() *pb.PeerEndpoint {
 	return cb.leader
+}
+
+func (cb *ConsensusBackup) verifyBlockSig1(msg *pb.Message, from *pb.PeerEndpoint, consensusType pb.ConsensusType) error {
+	consensusPayload := &pb.ConsensusPayload{}
+	blockSig1 := &pb.BoolMapSignature{}
+	multiPubkey := &multibls.PubKey{}
+	sig1 := &multibls.Sig{}
+	var err error
+	var committeeSort pb.PeerEndpointList
+	expected := 0
+	counter := 0
+	if consensusType != pb.ConsensusType_FinalBlockConsensus && consensusType != pb.ConsensusType_DsBlockConsensus && consensusType != pb.ConsensusType_ViewChangeConsensus ||
+		(consensusType == pb.ConsensusType_ViewChangeConsensus && cb.role.GetCurrentVCBlock().Header.Stage == "MicroBlockConsensus") {
+		return fmt.Errorf("Can not process this type of message: %d", consensusType)
+	}
+	for i := 0; i < cb.peerServer.Committee.Len(); i++ {
+		committeeSort = append(committeeSort, cb.peerServer.Committee[i])
+	}
+	sort.Sort(pb.ByPubkey{PeerEndpointList: committeeSort})
+	expected = int(math.Floor(float64(len(committeeSort))*ToleranceFraction + 1))
+
+	// deserialize payload to blockSig1.
+	err = proto.Unmarshal(msg.Payload, consensusPayload)
+	if err != nil {
+		return ErrUnmarshalMessage
+	}
+	err = proto.Unmarshal(consensusPayload.Msg, blockSig1)
+	if err != nil {
+		return ErrUnmarshalMessage
+	}
+	for i := 0; i < len(blockSig1.BoolMap); i++ {
+		pubKey := multibls.PubKey{}
+		if blockSig1.BoolMap[i] {
+			pubKey.Deserialize(committeeSort[i].Pubkey)
+			multiPubkey.Add(&pubKey.PublicKey)
+			counter++
+		}
+	}
+	if counter < expected {
+		return fmt.Errorf("signatures in round 1 are not enough")
+	}
+	err = sig1.Deserialize(blockSig1.Signature)
+	if err != nil {
+		return fmt.Errorf("deserializing signatures in round 1 failed")
+	}
+	switch consensusType {
+	case pb.ConsensusType_DsBlockConsensus:
+		verified := sig1.BLSVerify(multiPubkey, cb.role.GetCurrentDSBlock().MHash().Bytes())
+		if !verified {
+			return fmt.Errorf("verifying signatures in round 1 failed.")
+		}
+		cb.role.GetCurrentDSBlock().Header.Signature = blockSig1.Signature
+	case pb.ConsensusType_FinalBlockConsensus:
+		DSCoinBase := cb.role.GetCurrentFinalBlock().Header.DSCoinBase
+		cb.role.GetCurrentFinalBlock().Header.DSCoinBase = [][]byte{DSCoinBase[0]}
+		verified := sig1.BLSVerify(multiPubkey, cb.role.GetCurrentFinalBlock().MHash().Bytes())
+		cb.role.GetCurrentFinalBlock().Header.DSCoinBase = DSCoinBase
+		if !verified {
+			return fmt.Errorf("verifying signatures in round 1 failed")
+		}
+		cb.role.GetCurrentFinalBlock().Header.Signature = blockSig1.Signature
+	case pb.ConsensusType_ViewChangeConsensus:
+		verified := sig1.BLSVerify(multiPubkey, cb.role.GetCurrentVCBlock().Hash().Bytes())
+		if !verified {
+			return fmt.Errorf("verifying signatures in round 1 failed.")
+		}
+		cb.role.GetCurrentFinalBlock().Header.Signature = blockSig1.Signature
+	}
+	return nil
 }
 
 func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, consensusType pb.ConsensusType) error {
@@ -170,15 +287,25 @@ func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, c
 
 	switch consensusType {
 	case pb.ConsensusType_DsBlockConsensus:
-		dsblock := &pb.DSBlock{}
-		err = proto.Unmarshal(consensusPayload.Msg, dsblock)
+		dsBlockSig2 := &pb.DSBlockWithSig2{}
+		err = proto.Unmarshal(consensusPayload.Msg, dsBlockSig2)
 		if err != nil {
-			loggerBackup.Errorf("dsblock unmarshal failed with error: %s", err.Error())
+			loggerBackup.Errorf("txBlockSig2 unmarshal failed with error: %s", err.Error())
 			return ErrUnmarshalMessage
 		}
-		loggerBackup.Debugf("dsblock is %+v", dsblock)
+		dsblock := dsBlockSig2.Block
+		// verify multiple signature in round 2
+		multiSig2 := &multibls.Sig{}
+		err = multiSig2.Deserialize(dsBlockSig2.Sig2.Signature)
+		if err != nil {
+			return err
+		}
+		err = cb.peerServer.VerifyMultiSignByBoolMap(dsBlockSig2.Sig2.BoolMap, committeeSort, multiSig2, dsblock.Header.Signature, expected)
+		if err != nil {
+			return err
+		}
+		// verify DSBlock
 		cb.role.GetCurrentDSBlock().Header.Signature = nil
-
 		multisig = dsblock.Header.Signature
 		multiPub = dsblock.Header.MultiPubKey
 		boolMap = dsblock.Header.BoolMap
@@ -192,14 +319,6 @@ func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, c
 			loggerBackup.Errorf("msg dsblock is %+v", dsblock)
 			return ErrVerifyBlock
 		}
-
-		// verify message is signed by corrected owner
-		err = cb.peerServer.MsgVerify(msg, cb.role.GetCurrentDSBlock().Hash().Bytes())
-		if err != nil {
-			loggerBackup.Errorf("message signature verify failed with error: %s", err.Error())
-			return ErrVerifyMessage
-		}
-
 		// verify multi-pubkey according to boolmap
 		err = pb.BlsMultiPubkeyVerify(boolMap, committeeSort, multiPub)
 		if err != nil {
@@ -221,12 +340,25 @@ func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, c
 			cb.role.SetCurrentDSBlock(dsblock)
 		}
 	case pb.ConsensusType_FinalBlockConsensus:
-		txblock := &pb.TxBlock{}
-		err = proto.Unmarshal(consensusPayload.Msg, txblock)
+		txBlockSig2 := &pb.TxBlockWithSig2{}
+		var txblock *pb.TxBlock
+		err = proto.Unmarshal(consensusPayload.Msg, txBlockSig2)
 		if err != nil {
-			loggerBackup.Errorf("txblock unmarshal failed with error: %s", err.Error())
+			loggerBackup.Errorf("txBlockSig2 unmarshal failed with error: %s", err.Error())
 			return ErrUnmarshalMessage
 		}
+		txblock = txBlockSig2.Block
+		// verify multiple signature in round 2
+		multiSig2 := &multibls.Sig{}
+		err = multiSig2.Deserialize(txBlockSig2.Sig2.Signature)
+		if err != nil {
+			return err
+		}
+		err = cb.peerServer.VerifyMultiSignByBoolMap(txBlockSig2.Sig2.BoolMap, committeeSort, multiSig2, txblock.Header.Signature, expected)
+		if err != nil {
+			return err
+		}
+		// verify txblock
 		loggerBackup.Debugf("txblock is %+v", txblock)
 		cb.role.GetCurrentFinalBlock().Header.Signature = nil
 
@@ -235,7 +367,7 @@ func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, c
 		boolMap = txblock.Header.BoolMap
 		coinbases := txblock.Header.DSCoinBase
 
-		err := txblock.CheckCoinBase2(committeeSort, cb.peerServer.DsBlockChain().(*blockchain.DSBlockChain).GetPubkey2CoinbaseCache())
+		err = txblock.CheckCoinBase2(committeeSort, cb.peerServer.DsBlockChain().(*blockchain.DSBlockChain).GetPubkey2CoinbaseCache())
 		if err != nil {
 			return ErrCheckCoinBase
 		}
@@ -337,12 +469,33 @@ func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, c
 			cb.role.SetCurrentMicroBlock(mcblock)
 		}
 	case pb.ConsensusType_ViewChangeConsensus:
+		vcBlockSig2 := &pb.VCBlockWithSig2{}
 		vcblock := &pb.VCBlock{}
-		err = proto.Unmarshal(consensusPayload.Msg, vcblock)
-		if err != nil {
-			loggerBackup.Errorf("micro block unmarshal failed with error: %s", err.Error())
-			return ErrUnmarshalMessage
+		if cb.role.GetCurrentVCBlock().Header.Stage == "MicroBlockConsensus" {
+			err = proto.Unmarshal(consensusPayload.Msg, vcBlockSig2)
+			if err != nil {
+				loggerBackup.Errorf("txBlockSig2 unmarshal failed with error: %s", err.Error())
+				return ErrUnmarshalMessage
+			}
+			vcblock = vcBlockSig2.Block
+			// verify multiple signature in round 2
+			multiSig2 := &multibls.Sig{}
+			err = multiSig2.Deserialize(vcBlockSig2.Sig2.Signature)
+			if err != nil {
+				return err
+			}
+			err = cb.peerServer.VerifyMultiSignByBoolMap(vcBlockSig2.Sig2.BoolMap, committeeSort, multiSig2, vcblock.Header.Signature, expected)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = proto.Unmarshal(consensusPayload.Msg, vcblock)
+			if err != nil {
+				loggerBackup.Errorf("micro block unmarshal failed with error: %s", err.Error())
+				return ErrUnmarshalMessage
+			}
 		}
+		
 		loggerBackup.Debugf("vcblock is %+v", vcblock)
 		cb.role.GetCurrentVCBlock().Header.Signature = nil
 

@@ -21,7 +21,6 @@ package role
 import (
 	"context"
 
-	"github.com/golang/protobuf/proto"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )
@@ -31,22 +30,37 @@ func (r *RoleBase) VerifyBlock(msg *pb.Message, from *pb.PeerEndpoint, consensus
 	return nil
 }
 
+func (r *RoleBase) ComposeResponse(consensusType pb.ConsensusType) (*pb.Message, error) {
+	util.OkChainPanic("Invalid invoke")
+	return nil, nil
+}
+
 func (r *RoleBase) ComposeFinalResponse(consensusType pb.ConsensusType) (*pb.Message, error) {
 	util.OkChainPanic("Invalid invoke")
 	return nil, nil
 }
 
-func (r *RoleBase) produceAnnounce(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
+func (r *RoleBase) produceAnnounce(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
 	util.OkChainPanic("Invalid invoke")
 	return nil, nil
 }
 
-func (r *RoleBase) produceFinalResponse(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
+func (r *RoleBase) produceFinalCollectiveSig(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
 	util.OkChainPanic("Invalid invoke")
 	return nil, nil
 }
 
-func (r *RoleBase) produceFinalCollectiveSig(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
+func (r *RoleBase) produceResponse(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
+	util.OkChainPanic("Invalid invoke")
+	return nil, nil
+}
+
+func (r *RoleBase) produceFinalResponse(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
+	util.OkChainPanic("Invalid invoke")
+	return nil, nil
+}
+
+func (r *RoleBase) produceBroadCastBlock(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
 	util.OkChainPanic("Invalid invoke")
 	return nil, nil
 }

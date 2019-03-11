@@ -43,7 +43,9 @@ type iRoleInternel interface {
 type consensusExecution interface {
 	getConsensusData(consensusType pb.ConsensusType) (proto.Message, error)
 
-	produceAnnounce(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error)
-	produceFinalResponse(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error)
-	produceFinalCollectiveSig(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error)
+	produceAnnounce(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error)
+	produceResponse(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error)
+	produceFinalCollectiveSig(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error)
+	produceFinalResponse(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error)
+	produceBroadCastBlock(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error)
 }
