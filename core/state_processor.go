@@ -175,6 +175,9 @@ func (p *StateProcessor) Process(block *protos.TxBlock, statedb *state.StateDB, 
 		shardId := p.peer.GetShardId(tx, block.Header.DSBlockNum)
 		txFee := new(big.Int).SetUint64(gas*tx.GasPrice)
 		gasFeeTotal.Add(gasFeeTotal, txFee)
+		if gasFeeUsedShards[shardId] == nil {
+			gasFeeUsedShards[shardId] = new(big.Int)
+		}
 		gasFeeUsedShards[shardId].Add(gasFeeUsedShards[shardId], txFee)
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
