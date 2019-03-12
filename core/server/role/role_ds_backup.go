@@ -33,9 +33,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/ok-chain/okchain/config"
 	"github.com/ok-chain/okchain/core/blockchain"
+	ps "github.com/ok-chain/okchain/core/server"
 	"github.com/ok-chain/okchain/crypto/multibls"
 	logging "github.com/ok-chain/okchain/log"
-	ps "github.com/ok-chain/okchain/core/server"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )
@@ -109,7 +109,7 @@ func (r *RoleDsBackup) onWait4MicroBlockSubmissionDone() error {
 }
 
 // DsBlock Consensus 结束后被 Consensus backup engine 回调
-func (r *RoleDsBackup) onDsBlockConsensusCompleted(err error) error {
+func (r *RoleDsBackup) onDsBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 
 	err = r.onDsBlockReady(r.GetCurrentDSBlock())
 	if err != nil {
@@ -146,7 +146,7 @@ func (r *RoleDsBackup) onDsBlockConsensusCompleted(err error) error {
 	return nil
 }
 
-func (r *RoleDsBackup) onFinalBlockConsensusCompleted(err error) error {
+func (r *RoleDsBackup) onFinalBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 
 	err = r.onFinalBlockReady(r.GetCurrentFinalBlock())
 	if err != nil {

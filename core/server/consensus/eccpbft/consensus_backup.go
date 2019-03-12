@@ -24,8 +24,8 @@ limitations under the License.
 package eccpbft
 
 import (
-	logging "github.com/ok-chain/okchain/log"
 	ps "github.com/ok-chain/okchain/core/server"
+	logging "github.com/ok-chain/okchain/log"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )
@@ -103,7 +103,7 @@ func (cb *ConsensusBackup) processMessageFinalChallenge(msg *pb.Message, from *p
 
 func (cb *ConsensusBackup) processMessageFinalCollectiveSig(msg *pb.Message, from *pb.PeerEndpoint) error {
 	// notify sharding backup or ds backup
-	err := cb.role.OnConsensusCompleted(nil)
+	err := cb.role.OnConsensusCompleted(nil, nil)
 	if err != nil {
 		return err
 	}

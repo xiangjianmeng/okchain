@@ -27,9 +27,9 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	ps "github.com/ok-chain/okchain/core/server"
 	"github.com/ok-chain/okchain/core/txpool"
 	logging "github.com/ok-chain/okchain/log"
-	ps "github.com/ok-chain/okchain/core/server"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )
@@ -237,13 +237,9 @@ func (r *RoleShardingLead) produceAnnounce(envelope *pb.Message, consensusType p
 func (r *RoleShardingLead) preConsensusProcessMicroBlock(block proto.Message, announce *pb.Message, consensusType pb.ConsensusType) error {
 	var microBlock *pb.MicroBlock
 	var ok bool
-	if microBlock, ok = block.(*pb.MicroBlock); ok {
-		sig, err := r.peerServer.MsgSinger.SignHash(microBlock.Hash().Bytes(), nil)
-		if err != nil {
-			loggerShardingLead.Errorf("bls message sign failed with error: %s", err.Error())
-			return ErrSignMessage
-		}
-		announce.Signature = sig
+	if microBlock, ok = block.(*pb.MicroBlock); !ok {
+		loggerDsBackup.Errorf("expect MicroBlock not %+v", block)
+		return ErrComposeMessage
 	}
 
 	data, err := r.produceConsensusPayload(microBlock, consensusType)
@@ -251,19 +247,22 @@ func (r *RoleShardingLead) preConsensusProcessMicroBlock(block proto.Message, an
 		return err
 	}
 	announce.Payload = data
+	announce.Signature = nil
+	messageHashBytes := util.Hash(announce).Bytes()
+	announce.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
 	return nil
 }
 
 func (r *RoleShardingLead) preConsensusProcessVCBlock(block proto.Message, announce *pb.Message, consensusType pb.ConsensusType) error {
 	var vcblock *pb.VCBlock
 	var ok bool
-	if vcblock, ok = block.(*pb.VCBlock); ok {
-		sig, err := r.peerServer.MsgSinger.SignHash(vcblock.Hash().Bytes(), nil)
-		if err != nil {
-			loggerShardingLead.Errorf("bls message sign failed with error: %s", err.Error())
-			return ErrSignMessage
-		}
-		announce.Signature = sig
+	if vcblock, ok = block.(*pb.VCBlock); !ok {
+		loggerDsBackup.Errorf("expect VCBlock not %+v", block)
+		return ErrComposeMessage
 	}
 
 	data, err := r.produceConsensusPayload(vcblock, consensusType)
@@ -271,5 +270,12 @@ func (r *RoleShardingLead) preConsensusProcessVCBlock(block proto.Message, annou
 		return err
 	}
 	announce.Payload = data
+	announce.Signature = nil
+	messageHashBytes := util.Hash(announce).Bytes()
+	announce.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
 	return nil
 }

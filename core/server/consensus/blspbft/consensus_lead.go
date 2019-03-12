@@ -24,20 +24,20 @@ limitations under the License.
 package blspbft
 
 import (
+	"fmt"
 	"math"
 	"reflect"
 	"sort"
-	"fmt"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/ok-chain/okchain/core/blockchain"
+	ps "github.com/ok-chain/okchain/core/server"
+	"github.com/ok-chain/okchain/core/server/role"
 	"github.com/ok-chain/okchain/crypto/multibls"
 	logging "github.com/ok-chain/okchain/log"
-	ps "github.com/ok-chain/okchain/core/server"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
-	"github.com/ok-chain/okchain/core/server/role"
 )
 
 var (
@@ -56,6 +56,7 @@ type ConsensusLead struct {
 	publicKey2MsgMap     map[string]bool
 	signMap              map[string]*multibls.Sig
 	pubKeyMap            map[string]*multibls.PubKey
+	boolMapSign2         pb.BoolMapSignature
 }
 
 func newConsensusLead(peer *ps.PeerServer) ps.IConsensusLead {
@@ -191,18 +192,21 @@ func (cl *ConsensusLead) handleResponse(curState, nextState ConsensusState_Type,
 			//}
 
 			// 2. sharding only needs one round of signature
-			if consensusHandler.currentType == pb.ConsensusType_MicroBlockConsensus ||
-				(consensusHandler.currentType == pb.ConsensusType_ViewChangeConsensus && cl.role.GetCurrentVCBlock().Header.Stage == "MicroBlockConsensus") {
-				msg, err = cl.composeBroadCastBlock(nil, multibls.Sig{}, consensusHandler.currentType)
+			if cl.role.GetName() == "ShardLead" {
+				msg, err = cl.composeBroadCastBlock(nil, nil, consensusHandler.currentType)
+				if err != nil {
+					loggerLead.Errorf("compose broadcast block message error: %s", err.Error())
+					return false
+				}
+				loggerLead.Debugf("compose broadcast block message successed")
 			} else {
 				msg, err = cl.composeFinalCollectiveSig(consensusHandler.currentType)
+				if err != nil {
+					loggerLead.Errorf("compose final collectivesig message error: %s", err.Error())
+					return false
+				}
+				loggerLead.Debugf("compose final collectivesig message successed")
 			}
-			if err != nil {
-				loggerLead.Errorf("compose final collectivesig message error: %s", err.Error())
-				return false
-			}
-
-			loggerLead.Debugf("compose final collectivesig message successed")
 			// reset counter
 			cl.counter = 0
 			cl.state = nextState
@@ -260,20 +264,22 @@ func (cl *ConsensusLead) handleFinalResponse(curState, nextState ConsensusState_
 			loggerLead.Debugf("generate bit map passed")
 
 			// 2. compose final collectivesig message
-			msg, err := cl.composeBroadCastBlock(boolMap, multipleSig2, consensusHandler.currentType)
+			msgBroadCastBlock, err := cl.composeBroadCastBlock(boolMap, &multipleSig2, consensusHandler.currentType)
 			if err != nil {
-				loggerLead.Errorf("compose final collectivesig message error: %s", err.Error())
+				loggerLead.Errorf("compose broadcast block message error: %s", err.Error())
 				return false
 			}
-			loggerLead.Debugf("compose final collectivesig message successed")
+			loggerLead.Debugf("compose broadcast block message successed")
 			// reset counter
 			cl.counter = 0
 			cl.state = nextState
+			cl.boolMapSign2.BoolMap = boolMap
+			cl.boolMapSign2.Signature = multipleSig2.Serialize()
 			// flag is true only when counter is equal to toleranceSize and compose message success
 			send2Backups = true
-			loggerLead.Debugf("send final collectivesig message to nodes")
+			loggerLead.Debugf("send broadcast block message to nodes")
 			// 3. send message to backup nodes
-			cl.sendMsg2Backups(msg)
+			cl.sendMsg2Backups(msgBroadCastBlock)
 		}
 	}
 
@@ -282,13 +288,18 @@ func (cl *ConsensusLead) handleFinalResponse(curState, nextState ConsensusState_
 
 func (cl *ConsensusLead) processMessageResponse(msg *pb.Message, from *pb.PeerEndpoint) error {
 	var err error
+	var res bool
 	// verify message.
 	err = cl.peerServer.MessageVerify(msg)
 	if err != nil {
 		loggerBackup.Errorf("message signature verify failed with error: %s", err.Error())
 		return ErrVerifyMessage
 	}
-	res := cl.handleResponse(ANNOUNCE_DONE, FINALCOLLECTIVESIG_DONE, msg, from)
+	if cl.role.GetName() == "ShardLead" {
+		res = cl.handleResponse(ANNOUNCE_DONE, BROADCASTBLOCK_DONE, msg, from)
+	} else {
+		res = cl.handleResponse(ANNOUNCE_DONE, FINALCOLLECTIVESIG_DONE, msg, from)
+	}
 
 	if res {
 		// reset counter and all relevant map
@@ -296,11 +307,24 @@ func (cl *ConsensusLead) processMessageResponse(msg *pb.Message, from *pb.PeerEn
 		cl.publicKey2MsgMap = make(map[string]bool)
 		cl.pubKeyMap = make(map[string]*multibls.PubKey)
 		cl.signMap = make(map[string]*multibls.Sig)
+		if cl.role.GetName() == "ShardLead" {
+			err := cl.role.OnConsensusCompleted(nil, nil)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
 
 func (cl *ConsensusLead) processMessageFinalResponse(msg *pb.Message, from *pb.PeerEndpoint) error {
+	var err error
+	// verify message.
+	err = cl.peerServer.MessageVerify(msg)
+	if err != nil {
+		loggerBackup.Errorf("message signature verify failed with error: %s", err.Error())
+		return ErrVerifyMessage
+	}
 	res := cl.handleFinalResponse(FINALCOLLECTIVESIG_DONE, BROADCASTBLOCK_DONE, msg, from)
 
 	if res {
@@ -310,14 +334,13 @@ func (cl *ConsensusLead) processMessageFinalResponse(msg *pb.Message, from *pb.P
 		cl.pubKeyMap = make(map[string]*multibls.PubKey)
 		cl.signMap = make(map[string]*multibls.Sig)
 		// notify sharding lead or ds lead
-		err := cl.role.OnConsensusCompleted(nil)
+		err = cl.role.OnConsensusCompleted(nil, &cl.boolMapSign2)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
-
 
 func (cl *ConsensusLead) GetCurrentLeader() *pb.PeerEndpoint {
 	return cl.leader
@@ -457,12 +480,6 @@ func (cl *ConsensusLead) verifySig2AndUpdate(msg *pb.Message, from *pb.PeerEndpo
 	if consensusType != pb.ConsensusType_FinalBlockConsensus && consensusType != pb.ConsensusType_DsBlockConsensus && consensusType != pb.ConsensusType_ViewChangeConsensus ||
 		(consensusType == pb.ConsensusType_ViewChangeConsensus && cl.role.GetCurrentVCBlock().Header.Stage == "MicroBlockConsensus") {
 		return fmt.Errorf("Can not process this type of message: %d", consensusType)
-	}
-	// check if message is changed
-	err = cl.peerServer.MessageVerify(msg)
-	if err != nil {
-		loggerBackup.Errorf("message signature verify failed with error: %s", err.Error())
-		return ErrVerifyMessage
 	}
 	// check if msg.Payload.Msg is signature of multiple signature in round 1.
 	tempPubKey := &multibls.PubKey{}
@@ -625,7 +642,7 @@ func (cl *ConsensusLead) composeFinalCollectiveSig(consensusType pb.ConsensusTyp
 	return finalCollectiveSig, nil
 }
 
-func (cl *ConsensusLead) composeBroadCastBlock(boolMap []bool, multipleSig2 multibls.Sig, consensusType pb.ConsensusType) (*pb.Message, error) {
+func (cl *ConsensusLead) composeBroadCastBlock(boolMap []bool, multipleSig2 *multibls.Sig, consensusType pb.ConsensusType) (*pb.Message, error) {
 	broadCastBlockMsg := &pb.Message{Type: pb.Message_Consensus_BroadCastBlock}
 	broadCastBlockMsg.Timestamp = pb.CreateUtcTimestamp()
 	payload := &pb.ConsensusPayload{}
@@ -635,14 +652,16 @@ func (cl *ConsensusLead) composeBroadCastBlock(boolMap []bool, multipleSig2 mult
 	switch consensusType {
 	case pb.ConsensusType_DsBlockConsensus:
 		loggerLead.Debugf("dsblock is %+v", cl.role.GetCurrentDSBlock())
-		txSig2 := &pb.DSBlockWithSig2{}
-		txSig2.Block = cl.role.GetCurrentDSBlock()
-		txSig2.Sig2.BoolMap = boolMap
-		txSig2.Sig2.Signature = multipleSig2.Serialize()
-		block, err = proto.Marshal(txSig2)
+		dsSig2 := &pb.DSBlockWithSig2{}
+		dsSig2.Sig2 = &pb.BoolMapSignature{}
+		dsSig2.Block = cl.role.GetCurrentDSBlock()
+		dsSig2.Sig2.BoolMap = boolMap
+		dsSig2.Sig2.Signature = multipleSig2.Serialize()
+		block, err = proto.Marshal(dsSig2)
 	case pb.ConsensusType_FinalBlockConsensus:
 		loggerLead.Debugf("txblock is %+v", cl.role.GetCurrentFinalBlock())
 		txSig2 := &pb.TxBlockWithSig2{}
+		txSig2.Sig2 = &pb.BoolMapSignature{}
 		stateRoot, gasUsed, err := cl.peerServer.CalStateRoot(cl.role.GetCurrentFinalBlock())
 		if err != nil {
 			return nil, err
@@ -658,11 +677,12 @@ func (cl *ConsensusLead) composeBroadCastBlock(boolMap []bool, multipleSig2 mult
 		block, err = proto.Marshal(cl.role.GetCurrentMicroBlock())
 	case pb.ConsensusType_ViewChangeConsensus:
 		loggerLead.Debugf("vcblock is %+v", cl.role.GetCurrentVCBlock())
-		txSig2 := &pb.VCBlockWithSig2{}
-		txSig2.Block = cl.role.GetCurrentVCBlock()
-		txSig2.Sig2.BoolMap = boolMap
-		txSig2.Sig2.Signature = multipleSig2.Serialize()
-		block, err = proto.Marshal(txSig2)
+		vcSig2 := &pb.VCBlockWithSig2{}
+		vcSig2.Sig2 = &pb.BoolMapSignature{}
+		vcSig2.Block = cl.role.GetCurrentVCBlock()
+		vcSig2.Sig2.BoolMap = boolMap
+		vcSig2.Sig2.Signature = multipleSig2.Serialize()
+		block, err = proto.Marshal(vcSig2)
 	}
 	if err != nil {
 		loggerLead.Errorf("Marshal failed with error: %s", err.Error())

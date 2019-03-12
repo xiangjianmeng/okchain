@@ -26,9 +26,9 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/proto"
+	ps "github.com/ok-chain/okchain/core/server"
 	logging "github.com/ok-chain/okchain/log"
 	gossip_common "github.com/ok-chain/okchain/p2p/gossip/common"
-	ps "github.com/ok-chain/okchain/core/server"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )

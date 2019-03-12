@@ -42,24 +42,25 @@ type ContractInfo struct {
 	// empty name indicates Tx for transfering between external accounts
 	Name string
 	// empty name indicates Tx for transfering between external accounts
-	Abi  abi.ABI
+	Abi abi.ABI
 }
 
 type request func(options []string) (interface{}, error)
-var cmdFunction = map[string]request {
-	walletFlag + newAccountFlag : NewAccount,
-	walletFlag + accountsFlag : ListAccounts,
-	walletFlag + unlockFlag : UnlockAccount,
-	walletFlag + lockFlag : LockAccount,
 
-	okcFlag + getAccountFlag : GetAccount,
-	okcFlag + sendTxFalg : SendTx,
-	okcFlag + getLatestDsBlockFlag : GetLatestDsBlock,
-	okcFlag + getLatestTxBlockFlag : GetLatestTxBlock,
-	okcFlag + getTxFlag : GetTransaction,
-	okcFlag + deployContractFlag : DeployContract,
-	okcFlag + getTransactionReceiptFlag : GetTransactionReceipt,
-	okcFlag + contractAtFlag : ContractAt,
+var cmdFunction = map[string]request{
+	walletFlag + newAccountFlag: NewAccount,
+	walletFlag + accountsFlag:   ListAccounts,
+	walletFlag + unlockFlag:     UnlockAccount,
+	walletFlag + lockFlag:       LockAccount,
+
+	okcFlag + getAccountFlag:            GetAccount,
+	okcFlag + sendTxFalg:                SendTx,
+	okcFlag + getLatestDsBlockFlag:      GetLatestDsBlock,
+	okcFlag + getLatestTxBlockFlag:      GetLatestTxBlock,
+	okcFlag + getTxFlag:                 GetTransaction,
+	okcFlag + deployContractFlag:        DeployContract,
+	okcFlag + getTransactionReceiptFlag: GetTransactionReceipt,
+	okcFlag + contractAtFlag:            ContractAt,
 }
 
 // postRequest call function according to cmd and subcmd.
@@ -70,8 +71,8 @@ func postRequest(cmd, subcmd string, options []string) (interface{}, error) {
 	client = getClient()
 	if _, ok := contractAbis[cmd]; ok {
 		resp, err = ContractCall(cmd, subcmd, options)
-	} else if cmdFunction[cmd + subcmd] != nil {
-		resp, err = cmdFunction[cmd + subcmd](options)
+	} else if cmdFunction[cmd+subcmd] != nil {
+		resp, err = cmdFunction[cmd+subcmd](options)
 	} else {
 		resp = UnknowCmd.Error()
 	}

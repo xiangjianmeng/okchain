@@ -12,8 +12,8 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/ok-chain/okchain/config"
-	"github.com/ok-chain/okchain/crypto/multibls"
 	ps "github.com/ok-chain/okchain/core/server"
+	"github.com/ok-chain/okchain/crypto/multibls"
 	pb "github.com/ok-chain/okchain/protos"
 )
 

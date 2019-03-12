@@ -24,16 +24,16 @@ limitations under the License.
 package blspbft
 
 import (
+	"fmt"
 	"math"
 	"reflect"
 	"sort"
-	"fmt"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/ok-chain/okchain/core/blockchain"
+	ps "github.com/ok-chain/okchain/core/server"
 	"github.com/ok-chain/okchain/crypto/multibls"
 	logging "github.com/ok-chain/okchain/log"
-	ps "github.com/ok-chain/okchain/core/server"
 	pb "github.com/ok-chain/okchain/protos"
 )
 
@@ -113,7 +113,7 @@ func (cb *ConsensusBackup) processMessageAnnounce(msg *pb.Message, from *pb.Peer
 		return ErrComposeMessage
 	}
 
-	loggerBackup.Debugf("final response is %+v", response)
+	loggerBackup.Debugf("response is %+v", response)
 
 	// 3. send result to leader
 	cb.send2Lead(response)
@@ -150,7 +150,6 @@ func (cb *ConsensusBackup) processMessageFinalCollectiveSig(msg *pb.Message, fro
 	return nil
 }
 
-
 func (cb *ConsensusBackup) processMessageBroadCastBlock(msg *pb.Message, from *pb.PeerEndpoint) error {
 	var err error
 	// verify message
@@ -159,6 +158,7 @@ func (cb *ConsensusBackup) processMessageBroadCastBlock(msg *pb.Message, from *p
 		loggerBackup.Errorf("verify signature of broadcast message failed, error: %s", err.Error())
 		return ErrVerifyMessage
 	}
+	loggerBackup.Debugf("verify broad cast message passed")
 	// verify broadcast block message
 	err = cb.verifyBlock(msg, from, consensusHandler.currentType)
 	if err != nil {
@@ -167,9 +167,9 @@ func (cb *ConsensusBackup) processMessageBroadCastBlock(msg *pb.Message, from *p
 	} else {
 		loggerBackup.Debugf("verify payload of broadcast message  pass")
 	}
-
+	loggerBackup.Debugf("verify broad cast block passed")
 	// notify sharding backup or ds backup
-	err = cb.role.OnConsensusCompleted(nil)
+	err = cb.role.OnConsensusCompleted(nil, nil)
 	if err != nil {
 		return err
 	}
@@ -395,11 +395,6 @@ func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, c
 		}
 
 		cb.role.GetCurrentFinalBlock().Header.DSCoinBase = coinbases
-		err = cb.peerServer.MsgVerify(msg, cb.role.GetCurrentFinalBlock().Hash().Bytes())
-		if err != nil {
-			loggerBackup.Errorf("message signature verify failed with error: %s", err.Error())
-			return ErrVerifyMessage
-		}
 
 		err = pb.BlsMultiPubkeyVerify(boolMap, committeeSort, multiPub)
 		if err != nil {
@@ -444,12 +439,6 @@ func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, c
 			loggerBackup.Errorf("msg micro block is %+v", mcblock)
 			return ErrVerifyBlock
 		}
-		err = cb.peerServer.MsgVerify(msg, cb.role.GetCurrentMicroBlock().Hash().Bytes())
-		if err != nil {
-			loggerBackup.Errorf("message signature verify failed with error: %s", err.Error())
-			return ErrVerifyMessage
-		}
-
 		err = pb.BlsMultiPubkeyVerify(boolMap, cb.peerServer.ShardingNodes, multiPub)
 		if err != nil {
 			loggerBackup.Errorf("bls multi pubkey verify failed with error: %s", err.Error())
@@ -495,7 +484,7 @@ func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, c
 				return ErrUnmarshalMessage
 			}
 		}
-		
+
 		loggerBackup.Debugf("vcblock is %+v", vcblock)
 		cb.role.GetCurrentVCBlock().Header.Signature = nil
 
@@ -512,12 +501,6 @@ func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, c
 			loggerBackup.Errorf("msg vcblock is %+v", vcblock)
 			return ErrVerifyBlock
 		}
-		err = cb.peerServer.MsgVerify(msg, cb.role.GetCurrentVCBlock().Hash().Bytes())
-		if err != nil {
-			loggerBackup.Errorf("message signature verify failed with error: %s", err.Error())
-			return ErrVerifyMessage
-		}
-
 		// different multi pubkey verify parameters for different viewchange stage
 		if vcblock.Header.Stage == "MicroBlockConsensus" {
 			err = pb.BlsMultiPubkeyVerify(boolMap, cb.peerServer.ShardingNodes, multiPub)

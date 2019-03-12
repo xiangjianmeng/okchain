@@ -79,7 +79,7 @@ func (r *RoleBase) OnViewChangeConsensusStarted() error {
 
 func (r *RoleBase) resetShardingNodes(dsblock *pb.DSBlock) { util.OkChainPanic("Invalid invoke") }
 
-func (r *RoleBase) OnConsensusCompleted(err error) error {
+func (r *RoleBase) OnConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 	util.OkChainPanic("Invalid invoke")
 	return nil
 }
@@ -98,12 +98,12 @@ func (r *RoleBase) onWait4MicroBlockSubmissionDone() error {
 	return nil
 }
 
-func (r *RoleBase) onDsBlockConsensusCompleted(err error) error {
+func (r *RoleBase) onDsBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 	util.OkChainPanic("Invalid invoke")
 	return nil
 }
 
-func (r *RoleBase) onFinalBlockConsensusCompleted(err error) error {
+func (r *RoleBase) onFinalBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 	util.OkChainPanic("Invalid invoke")
 	return nil
 }

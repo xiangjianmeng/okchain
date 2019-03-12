@@ -48,6 +48,7 @@ type ShardReward struct {
 }
 
 type ShardRewardList []ShardReward
+
 func (p ShardRewardList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p ShardRewardList) Len() int           { return len(p) }
 func (p ShardRewardList) Less(i, j int) bool { return p[i].GasFee.Cmp(p[j].GasFee) == -1 }
@@ -70,7 +71,6 @@ func sortByGasFee(gasFeeUsedShards map[uint32]*big.Int) ShardRewardList {
 	sort.Sort(shardRewardList)
 	return shardRewardList
 }
-
 
 func assignRwards(block *protos.TxBlock, statedb *state.StateDB, gasFeeTotal *big.Int, gasFeeUsedShards map[uint32]*big.Int) {
 	blockNum := block.Header.BlockNumber
@@ -132,10 +132,10 @@ func assignRwards(block *protos.TxBlock, statedb *state.StateDB, gasFeeTotal *bi
 	// assign DS reward
 	DsBackupCnt := new(big.Int).SetInt64(int64(len(block.Header.DSCoinBase) - 1))
 	// DSLeaderMoreRate implies that DSLeader is assigned more 10 percent out DSRewardTotal than shard.
-	DSLeaderMoreRate := new(big.Int).SetUint64(11 )
+	DSLeaderMoreRate := new(big.Int).SetUint64(11)
 	// compute shardAverageReward according to 1.1 * DSBackupAverageReward + DsBackupCnt * DSBackupAverageReward = totalReward.
-	DSBackupAverageReward := new(big.Int).Div(new(big.Int).Mul(DSRewardTotal, new(big.Int).SetUint64(10 )),
-		new(big.Int).Add(DSLeaderMoreRate, new(big.Int).Mul(new(big.Int).SetUint64(10 ), DsBackupCnt)))
+	DSBackupAverageReward := new(big.Int).Div(new(big.Int).Mul(DSRewardTotal, new(big.Int).SetUint64(10)),
+		new(big.Int).Add(DSLeaderMoreRate, new(big.Int).Mul(new(big.Int).SetUint64(10), DsBackupCnt)))
 	for i := 1; i < len(block.Header.DSCoinBase); i++ {
 		statedb.AddBalance(common.BytesToAddress(block.Header.DSCoinBase[i]), DSBackupAverageReward)
 		DSRewardTotal.Sub(DSRewardTotal, DSBackupAverageReward)
@@ -158,9 +158,9 @@ func (p *StateProcessor) Process(block *protos.TxBlock, statedb *state.StateDB, 
 		header   = block.Header
 		allLogs  []*types.Log
 		//gp       = new(GasPool).AddGas(block.Header.GasLimit)
-		gp = new(GasPool).AddGas(10000000000000000)
+		gp               = new(GasPool).AddGas(10000000000000000)
 		gasFeeUsedShards = make(map[uint32]*big.Int)
-		gasFeeTotal = new(big.Int)
+		gasFeeTotal      = new(big.Int)
 	)
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Body.Transactions {
@@ -173,7 +173,7 @@ func (p *StateProcessor) Process(block *protos.TxBlock, statedb *state.StateDB, 
 
 		// store used gas of tx according to shardId
 		shardId := p.peer.GetShardId(tx, block.Header.DSBlockNum)
-		txFee := new(big.Int).SetUint64(gas*tx.GasPrice)
+		txFee := new(big.Int).SetUint64(gas * tx.GasPrice)
 		gasFeeTotal.Add(gasFeeTotal, txFee)
 		gasFeeUsedShards[shardId].Add(gasFeeUsedShards[shardId], txFee)
 		receipts = append(receipts, receipt)

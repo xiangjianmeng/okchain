@@ -13,8 +13,8 @@ import (
 
 	"github.com/ok-chain/okchain/common"
 	"github.com/ok-chain/okchain/core/blockchain/txblockchain"
-	logging "github.com/ok-chain/okchain/log"
 	"github.com/ok-chain/okchain/core/server"
+	logging "github.com/ok-chain/okchain/log"
 	"github.com/ok-chain/okchain/protos"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"

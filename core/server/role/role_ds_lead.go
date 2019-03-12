@@ -29,11 +29,11 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/ok-chain/okchain/config"
+	ps "github.com/ok-chain/okchain/core/server"
 	logging "github.com/ok-chain/okchain/log"
 	"github.com/ok-chain/okchain/p2p/gossip/common"
 	"github.com/ok-chain/okchain/p2p/gossip/filter"
 	"github.com/ok-chain/okchain/p2p/gossip/gossip"
-	ps "github.com/ok-chain/okchain/core/server"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )
@@ -57,9 +57,9 @@ func newRoleDsLead(peer *ps.PeerServer) ps.IRole {
 	return r
 }
 
-func (r *RoleDsLead) onDsBlockConsensusCompleted(err error) error {
+func (r *RoleDsLead) onDsBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 	// todo: handle err
-
+	dsBlockSign2 := &pb.DSBlockWithSig2{}
 	// 1. persist ds block and update network topology
 	dsblock := r.GetCurrentDSBlock()
 	r.peerServer.ConsensusData.PoWSubList.Clear()
@@ -77,23 +77,23 @@ func (r *RoleDsLead) onDsBlockConsensusCompleted(err error) error {
 	// 3. send ds block to all sharding nodes
 	msg := &pb.Message{Type: pb.Message_Node_ProcessDSBlock}
 	msg.Timestamp = pb.CreateUtcTimestamp()
-
-	sig, err := r.peerServer.MsgSinger.SignHash(dsblock.Hash().Bytes(), nil)
+	dsBlockSign2.Block = dsblock
+	dsBlockSign2.Sig2 = boolMapSign2
+	data, err := proto.Marshal(dsBlockSign2)
 	if err != nil {
-		loggerDsLead.Errorf("bls message sign failed with error: %s", err.Error())
-		return ErrSignMessage
-	}
-	msg.Signature = sig
-
-	data, err := proto.Marshal(dsblock)
-	if err != nil {
-		loggerDsLead.Errorf("dsblock marshal failed with error: %s", err.Error())
+		loggerDsLead.Errorf("dsBlockSign2 marshal failed with error: %s", err.Error())
 		return ErrMarshalMessage
 	}
 
 	msg.Payload = data
 	msg.Peer = r.peerServer.SelfNode
-
+	msg.Signature = nil
+	messageHashBytes := util.Hash(msg).Bytes()
+	msg.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
 	//loggerDsLead.Debugf("oldShardingNodes Dump")
 	//oldShardingNodes.Dump()
 	//err = r.peerServer.Multicast(msg, oldShardingNodes)
@@ -115,7 +115,7 @@ func (r *RoleDsLead) onDsBlockConsensusCompleted(err error) error {
 	return nil
 }
 
-func (r *RoleDsLead) onFinalBlockConsensusCompleted(err error) error {
+func (r *RoleDsLead) onFinalBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 	//todo: handle err
 	err = r.onFinalBlockReady(r.GetCurrentFinalBlock())
 	if err != nil {
@@ -139,7 +139,7 @@ func (r *RoleDsLead) onFinalBlockConsensusCompleted(err error) error {
 	msg := &pb.Message{Type: pb.Message_Node_ProcessFinalBlock}
 	msg.Timestamp = pb.CreateUtcTimestamp()
 
-	data, err := proto.Marshal(r.GetCurrentFinalBlock())
+	data, err := proto.Marshal(&pb.TxBlockWithSig2{r.GetCurrentFinalBlock(), boolMapSign2})
 	if err != nil {
 		loggerDsLead.Errorf("final block marshal failed with error: %s", err.Error())
 		return ErrMarshalMessage
@@ -147,13 +147,13 @@ func (r *RoleDsLead) onFinalBlockConsensusCompleted(err error) error {
 
 	msg.Payload = data
 	msg.Peer = r.peerServer.SelfNode
-	sig, err := r.peerServer.MsgSinger.SignHash(r.GetCurrentFinalBlock().Hash().Bytes(), nil)
+	msg.Signature = nil
+	messageHashBytes := util.Hash(msg).Bytes()
+	msg.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
 	if err != nil {
-		loggerDsLead.Errorf("bls message sign failed with error: %s", err.Error())
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
 		return ErrSignMessage
 	}
-
-	msg.Signature = sig
 
 	msgData, err := proto.Marshal(msg)
 	if err != nil {
@@ -370,7 +370,7 @@ func (r *RoleDsLead) preConsensusProcessFinalBlock(block proto.Message, announce
 func (r *RoleDsLead) preConsensusProcessVCBlock(block proto.Message, announce *pb.Message, consensusType pb.ConsensusType) error {
 	var vcblock *pb.VCBlock
 	var ok bool
-	if vcblock, ok = block.(*pb.VCBlock); ok {
+	if vcblock, ok = block.(*pb.VCBlock); !ok {
 		loggerDsBackup.Errorf("expect VCBlock not %+v", block)
 		return ErrComposeMessage
 	}

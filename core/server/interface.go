@@ -86,7 +86,7 @@ type IRole interface {
 	ProcessTransaction(tx *pb.Transaction)
 	ProcessConsensusMsg(msg *pb.Message, from *pb.PeerEndpoint) error
 	Wait4PoWSubmission(ctx context.Context, cancle context.CancelFunc)
-	OnConsensusCompleted(err error) error
+	OnConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error
 	OnMircoBlockConsensusStarted(peer *pb.PeerEndpoint) error
 	OnViewChangeConsensusStarted() error
 	VerifyVCBlock(msg *pb.Message, from *pb.PeerEndpoint) (*pb.VCBlock, error)

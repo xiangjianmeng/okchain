@@ -28,8 +28,8 @@ type iRoleInternel interface {
 	ps.IRole
 	onWait4PoWSubmissionDone() error
 	onWait4MicroBlockSubmissionDone() error
-	onDsBlockConsensusCompleted(err error) error
-	onFinalBlockConsensusCompleted(err error) error
+	onDsBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error
+	onFinalBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error
 	onMircoBlockConsensusCompleted(err error) error
 	onViewChangeConsensusCompleted(err error) error
 	resetShardingNodes(dsblock *pb.DSBlock)

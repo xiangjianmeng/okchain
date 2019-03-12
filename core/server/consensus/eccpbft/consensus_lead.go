@@ -28,8 +28,8 @@ import (
 	"sync"
 	"time"
 
-	logging "github.com/ok-chain/okchain/log"
 	ps "github.com/ok-chain/okchain/core/server"
+	logging "github.com/ok-chain/okchain/log"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )
@@ -160,7 +160,7 @@ func (cl *ConsensusLead) processMessageFinalResponse(msg *pb.Message, from *pb.P
 	if res {
 		cl.counter = 0
 		// notify sharding lead or ds lead
-		err := cl.role.OnConsensusCompleted(nil)
+		err := cl.role.OnConsensusCompleted(nil, nil)
 		if err != nil {
 			return err
 		}
