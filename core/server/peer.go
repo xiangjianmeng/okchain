@@ -4,6 +4,7 @@ package server
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -265,7 +266,7 @@ func (p *PeerServer) Init(gossipPort int, listenAddr string, grpcServer *grpc.Se
 	if mode == "lookup" {
 		isBoot = true
 	}
-	p.Gossip = gossip.NewGossipInstance(gossipPort-gossipPort%100, gossipPort%100, 1000, isBoot, grpcServer)
+	p.Gossip = gossip.NewGossipInstance(gossipPort, hex.EncodeToString(p.PublicKey), 1000, isBoot, grpcServer)
 
 	p.Gossip.JoinChan(&gossip.JoinChanMsg{}, gossip_common.ChainID("A"))
 	p.Gossip.UpdateDsLedgerHeight(1, gossip_common.ChainID("A"))
