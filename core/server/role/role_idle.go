@@ -131,14 +131,19 @@ func (r *RoleIdle) ProcessFinalBlock(pbMsg *pb.Message, from *pb.PeerEndpoint) e
 		// call miner function
 		pk := multibls.PubKey{}
 		pk.Deserialize(r.peerServer.SelfNode.Pubkey)
-		miningResult, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
-
+		miningResult, diff, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
 		if err != nil {
 			return err
 		}
 
-		powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey)
+		// issue#9  whether the block is updated after mining
+		newDsBlock := r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock)
+		if curDsBlock.NumberU64() != newDsBlock.NumberU64() {
+			idleLogger.Warningf("dsblock is updated to %d, i will ignore the PoWSubmission", newDsBlock.NumberU64())
+			return nil
+		}
 
+		powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey, diff)
 		data, err := proto.Marshal(powSubmission)
 		if err != nil {
 			idleLogger.Errorf("PoWSubmission marshal error %s", err.Error())
@@ -221,7 +226,7 @@ func (r *RoleIdle) ProcessSetPrimary(rawMsg *pb.Message, from *pb.PeerEndpoint) 
 	if myAddr != inform.Leader.Id.Name {
 		newRole.(*RoleDsBackup).dsConsensusBackup.UpdateLeader(r.peerServer.Committee[id])
 	}
-	ctx, cancle := context.WithTimeout(context.Background(), config.TIMEOUT_POW_SUBMISSION)
+	ctx, cancle := context.WithTimeout(context.Background(), time.Duration(r.peerServer.GetWait4PoWTime())*time.Second)
 	go newRole.Wait4PoWSubmission(ctx, cancle)
 
 	r.peerServer.DumpRoleAndState()
@@ -271,12 +276,12 @@ func (r *RoleIdle) ProcessStartPoW(powmsg *pb.Message, from *pb.PeerEndpoint) er
 	pk := multibls.PubKey{}
 	pk.Deserialize(r.peerServer.PublicKey)
 
-	miningResult, err := r.mining(pk.GetHexString(), inform.Pow.BlockNum)
+	miningResult, diff, err := r.mining(pk.GetHexString(), inform.Pow.BlockNum)
 	if err != nil {
 		return ErrMine
 	}
 
-	powSubmission := r.composePoWSubmission(miningResult, inform.Pow.BlockNum, r.peerServer.SelfNode.Pubkey)
+	powSubmission := r.composePoWSubmission(miningResult, inform.Pow.BlockNum, r.peerServer.SelfNode.Pubkey, diff)
 	data, err := proto.Marshal(powSubmission)
 	if err != nil {
 		idleLogger.Errorf("PoWSubmission marshal failed with error: %s", err.Error())

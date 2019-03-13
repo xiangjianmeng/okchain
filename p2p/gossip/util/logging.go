@@ -42,6 +42,7 @@ func GetLogger(module string, peerID string) *logging.Logger {
 
 	// Logger doesn't exist, create a new one
 	lgr := logging.MustGetLogger(module)
+	logging.SetModuleLevel(`(?i:^gossip).*`, logging.GetModuleLevel("gossip"))
 	LoggersByModules[module] = lgr
 	return lgr
 }

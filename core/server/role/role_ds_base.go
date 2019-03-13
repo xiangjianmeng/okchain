@@ -159,17 +159,17 @@ func (r *RoleDsBase) ProcessPoWSubmission(msg *pb.Message, from *pb.PeerEndpoint
 
 func (r *RoleDsBase) Wait4PoWSubmission(ctx context.Context, cancle context.CancelFunc) {
 	r.cancelFunc = cancle
+	roleDsBaseLogger.Debugf("wait %ds to collect PoW submission", r.peerServer.GetWait4PoWTime())
+
 	for {
 		select {
 		case <-ctx.Done():
-			// r.imp: RoleDsLead or RoleDsBackup
 			r.peerServer.ConsensusData.PoWSubList.Sort()
 			r.peerServer.ConsensusData.PoWSubList.Dump()
 			r.imp.onWait4PoWSubmissionDone()
 			return
 		default:
-			roleDsBaseLogger.Debugf("wait %ds to collect PoW submission", r.peerServer.GetWait4PoWTime())
-			time.Sleep(time.Duration(r.peerServer.GetWait4PoWTime()) * time.Second)
+			time.Sleep(1 * time.Second)
 		}
 	}
 }

@@ -29,9 +29,9 @@ import (
 	"encoding/hex"
 	"reflect"
 	"sort"
+	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/ok-chain/okchain/config"
 	"github.com/ok-chain/okchain/core/blockchain"
 	ps "github.com/ok-chain/okchain/core/server"
 	"github.com/ok-chain/okchain/crypto/multibls"
@@ -68,7 +68,7 @@ func (r *RoleDsBackup) ProcessConsensusMsg(msg *pb.Message, from *pb.PeerEndpoin
 
 func (r *RoleDsBackup) onWait4PoWSubmissionDone() error {
 	if r.peerServer.ConsensusData.PoWSubList.Len() == 0 {
-		ctx, cancle := context.WithTimeout(context.Background(), config.TIMEOUT_POW_SUBMISSION)
+		ctx, cancle := context.WithTimeout(context.Background(), time.Duration(r.peerServer.GetWait4PoWTime())*time.Second)
 		go r.Wait4PoWSubmission(ctx, cancle)
 		return nil
 	}
@@ -161,7 +161,7 @@ func (r *RoleDsBackup) onFinalBlockConsensusCompleted(err error, boolMapSign2 *p
 		(numOfSharding == 0 && r.GetCurrentFinalBlock().Header.BlockNumber%uint64(len(r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Body.ShardingNodes)) == 0) {
 		r.ChangeState(ps.STATE_WAIT4_POW_SUBMISSION)
 		r.peerServer.ShardingNodes = []*pb.PeerEndpoint{}
-		ctx, cancle := context.WithTimeout(context.Background(), config.TIMEOUT_POW_SUBMISSION)
+		ctx, cancle := context.WithTimeout(context.Background(), time.Duration(r.peerServer.GetWait4PoWTime())*time.Second)
 		go r.Wait4PoWSubmission(ctx, cancle)
 	} else {
 		r.ChangeState(ps.STATE_WAIT4_MICROBLOCK_SUBMISSION)

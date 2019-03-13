@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/ok-chain/okchain/config"
 	ps "github.com/ok-chain/okchain/core/server"
 	logging "github.com/ok-chain/okchain/log"
 	"github.com/ok-chain/okchain/p2p/gossip/common"
@@ -128,7 +127,7 @@ func (r *RoleDsLead) onFinalBlockConsensusCompleted(err error, boolMapSign2 *pb.
 	if (numOfSharding != 0 && r.GetCurrentFinalBlock().Header.BlockNumber%uint64(r.peerServer.GetShardingSize()) == 0) ||
 		(numOfSharding == 0 && r.GetCurrentFinalBlock().Header.BlockNumber%uint64(len(r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Body.ShardingNodes)) == 0) {
 		r.ChangeState(ps.STATE_WAIT4_POW_SUBMISSION)
-		ctx, cancle := context.WithTimeout(context.Background(), config.TIMEOUT_POW_SUBMISSION)
+		ctx, cancle := context.WithTimeout(context.Background(), time.Duration(r.peerServer.GetWait4PoWTime())*time.Second)
 		loggerDsLead.Debugf("waiting for POW_SUBMISSION")
 		go r.Wait4PoWSubmission(ctx, cancle)
 	} else {
@@ -214,7 +213,7 @@ func (r *RoleDsLead) onWait4PoWSubmissionDone() error {
 	// todo: ensure all backups go to state STATE_DSBLOCK_CONSENSUS before InitiateConsensus
 	// http://gitlab.okcoin-inc.com/okchain/go-okchain/issues/24#3-consensus_start_waittime
 	if r.peerServer.ConsensusData.PoWSubList.Len() == 0 {
-		ctx, cancle := context.WithTimeout(context.Background(), config.TIMEOUT_POW_SUBMISSION)
+		ctx, cancle := context.WithTimeout(context.Background(), time.Duration(r.peerServer.GetWait4PoWTime())*time.Second)
 		go r.Wait4PoWSubmission(ctx, cancle)
 		return nil
 	}

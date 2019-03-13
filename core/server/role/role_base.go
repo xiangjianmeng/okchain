@@ -517,19 +517,20 @@ func (r *RoleBase) VerifyVCBlock(msg *pb.Message, from *pb.PeerEndpoint) (*pb.VC
 	return vcblock, nil
 }
 
-func (r *RoleBase) mining(pk string, blockNumber uint64) (*pb.MiningResult, error) {
+func (r *RoleBase) mining(pk string, blockNumber uint64) (*pb.MiningResult, int64, error) {
+	diff := r.peerServer.GetPowDifficulty()
 	seed := r.updateDSBlockRand() + r.updateTXBlockRand() + r.peerServer.SelfNode.Address + pk + hex.EncodeToString(r.peerServer.CoinBase)
-	miningResult, err := r.peerServer.Miner.Mine([]byte(seed), blockNumber+1, big.NewInt(r.peerServer.GetPowDifficulty()))
+	miningResult, err := r.peerServer.Miner.Mine([]byte(seed), blockNumber+1, big.NewInt(diff))
 	if err != nil {
 		logger.Errorf("mine error with seed %+v, error: %s", seed, err.Error())
-		return nil, ErrMine
+		return nil, diff, ErrMine
 	}
 	logger.Debugf("mine nonce is %d, hash is %s, resulthash is %s", miningResult.Nonce,
 		hex.EncodeToString(miningResult.MixHash), hex.EncodeToString(miningResult.PowResult))
-	return miningResult, nil
+	return miningResult, diff, nil
 }
 
-func (r *RoleBase) composePoWSubmission(miningResult *pb.MiningResult, blockNumber uint64, pubkey []byte) *pb.PoWSubmission {
+func (r *RoleBase) composePoWSubmission(miningResult *pb.MiningResult, blockNumber uint64, pubkey []byte, diff int64) *pb.PoWSubmission {
 	powSubmission := &pb.PoWSubmission{}
 	powSubmission.BlockNum = blockNumber
 	powSubmission.Nonce = miningResult.Nonce
@@ -537,7 +538,7 @@ func (r *RoleBase) composePoWSubmission(miningResult *pb.MiningResult, blockNumb
 	powSubmission.Peer = r.peerServer.SelfNode
 	powSubmission.PublicKey = pubkey
 	powSubmission.Coinbase = r.peerServer.CoinBase
-	powSubmission.Difficulty = uint64(r.peerServer.GetPowDifficulty())
+	powSubmission.Difficulty = uint64(diff)
 	powSubmission.Rand1 = r.updateDSBlockRand()
 	powSubmission.Rand2 = r.updateTXBlockRand()
 	return powSubmission

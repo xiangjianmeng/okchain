@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/ok-chain/okchain/config"
 	ps "github.com/ok-chain/okchain/core/server"
 	"github.com/ok-chain/okchain/crypto/multibls"
 	pb "github.com/ok-chain/okchain/protos"
@@ -72,7 +71,7 @@ func RevertRole(srv *ps.PeerServer) error {
 	} else if curTxBlock.NumberU64() == curDsBlock.NumberU64()*shardingSize { //should build dsblock
 		if bytes.Equal(pubkey, curDsBlock.Header.WinnerPubKey) { //ds leader
 			srv.ChangeRole(ps.PeerRole_DsLead, ps.STATE_WAIT4_POW_SUBMISSION)
-			ctx, cancle := context.WithTimeout(context.Background(), config.TIMEOUT_POW_SUBMISSION)
+			ctx, cancle := context.WithTimeout(context.Background(), time.Duration(srv.GetWait4PoWTime())*time.Second)
 			loggerDsLead.Debugf("waiting for POW_SUBMISSION")
 			go srv.GetCurrentRole().(*RoleDsLead).Wait4PoWSubmission(ctx, cancle)
 		} else if srv.Committee.Has(srv.SelfNode) {
@@ -81,7 +80,7 @@ func RevertRole(srv *ps.PeerServer) error {
 			srv.ChangeRole(ps.PeerRole_DsBackup, ps.STATE_WAIT4_POW_SUBMISSION)
 			srv.GetCurrentRole().(*RoleDsBackup).dsConsensusBackup.UpdateLeader(curDsBlock.Header.NewLeader)
 			loggerDsLead.Infof("I am next round DS Backup")
-			ctx, cancle := context.WithTimeout(context.Background(), config.TIMEOUT_POW_SUBMISSION)
+			ctx, cancle := context.WithTimeout(context.Background(), time.Duration(srv.GetWait4PoWTime())*time.Second)
 			loggerDsLead.Debugf("waiting for POW_SUBMISSION")
 			go srv.GetCurrentRole().(*RoleDsBackup).Wait4PoWSubmission(ctx, cancle)
 		} else if hashNode(curDsBlock.Body.ShardingNodes, srv.SelfNode) {
@@ -197,13 +196,12 @@ func initShardingNodeInfo(peerServer *ps.PeerServer, dsblock *pb.DSBlock) {
 func startPowLead(r *RoleShardingLead, txblock *pb.TxBlock) error {
 	pk := multibls.PubKey{}
 	pk.Deserialize(r.peerServer.SelfNode.Pubkey)
-	miningResult, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
-
+	miningResult, diff, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
 	if err != nil {
 		return err
 	}
 
-	powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey)
+	powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey, diff)
 
 	loggerShardingBase.Debugf("powsubmission is %+v", powSubmission)
 
@@ -238,13 +236,12 @@ func startPowLead(r *RoleShardingLead, txblock *pb.TxBlock) error {
 func startPowBackup(r *RoleShardingBackup, txblock *pb.TxBlock) error {
 	pk := multibls.PubKey{}
 	pk.Deserialize(r.peerServer.SelfNode.Pubkey)
-	miningResult, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
-
+	miningResult, diff, err := r.mining(pk.GetHexString(), txblock.Header.BlockNumber)
 	if err != nil {
 		return err
 	}
 
-	powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey)
+	powSubmission := r.composePoWSubmission(miningResult, txblock.Header.BlockNumber, r.peerServer.SelfNode.Pubkey, diff)
 
 	loggerShardingBase.Debugf("powsubmission is %+v", powSubmission)
 
