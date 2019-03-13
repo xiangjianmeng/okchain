@@ -22,7 +22,7 @@ const (
 
 var LoggersByModules = make(map[string]*logging.Logger)
 var lock = sync.Mutex{}
-var testMode bool = true
+var testMode bool
 
 // defaultTestSpec is the default logging level for gossip tests
 var defaultTestSpec = "WARNING"
