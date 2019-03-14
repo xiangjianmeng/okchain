@@ -66,7 +66,7 @@ func newRoleDsBase(peer *ps.PeerServer) *RoleDsBase {
 }
 
 // callback function when consensus finished
-func (r *RoleDsBase) OnConsensusCompleted(err error) error {
+func (r *RoleDsBase) OnConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 	stateType := reflect.TypeOf(r.state).String()
 	loggerDsBackup.Debugf("Invoked: state<%s>", stateType)
 
@@ -78,10 +78,10 @@ func (r *RoleDsBase) OnConsensusCompleted(err error) error {
 	switch stateType {
 	case "*state.STATE_DSBLOCK_CONSENSUS":
 		loggerDsBackup.Debugf("dsblock consensus completed")
-		err = r.imp.onDsBlockConsensusCompleted(err)
+		err = r.imp.onDsBlockConsensusCompleted(err, boolMapSign2)
 	case "*state.STATE_FINALBLOCK_CONSENSUS":
 		loggerDsBackup.Debugf("final block consensus completed")
-		err = r.imp.onFinalBlockConsensusCompleted(err)
+		err = r.imp.onFinalBlockConsensusCompleted(err, boolMapSign2)
 	case "*state.STATE_VIEWCHANGE_CONSENSUS":
 		loggerDsBackup.Debugf("viewchange consensus completed")
 		err = r.imp.onViewChangeConsensusCompleted(err)

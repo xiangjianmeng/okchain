@@ -37,6 +37,7 @@ import (
 	"github.com/ok-chain/okchain/crypto/multibls"
 	logging "github.com/ok-chain/okchain/log"
 	pb "github.com/ok-chain/okchain/protos"
+	"github.com/ok-chain/okchain/util"
 )
 
 type RoleDsBackup struct {
@@ -108,7 +109,7 @@ func (r *RoleDsBackup) onWait4MicroBlockSubmissionDone() error {
 }
 
 // DsBlock Consensus 结束后被 Consensus backup engine 回调
-func (r *RoleDsBackup) onDsBlockConsensusCompleted(err error) error {
+func (r *RoleDsBackup) onDsBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 
 	err = r.onDsBlockReady(r.GetCurrentDSBlock())
 	if err != nil {
@@ -145,7 +146,7 @@ func (r *RoleDsBackup) onDsBlockConsensusCompleted(err error) error {
 	return nil
 }
 
-func (r *RoleDsBackup) onFinalBlockConsensusCompleted(err error) error {
+func (r *RoleDsBackup) onFinalBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 
 	err = r.onFinalBlockReady(r.GetCurrentFinalBlock())
 	if err != nil {
@@ -415,38 +416,30 @@ func (r *RoleDsBackup) verifyDSBlock(msg *pb.Message, from *pb.PeerEndpoint) err
 	//	loggerDsBackup.Errorf("pubkey to coinbase map cannot match")
 	//	return ErrVerifyBlock
 	//}
-
-	err = r.peerServer.MsgVerify(msg, dsblock.Hash().Bytes())
-	if err != nil {
-		loggerDsBackup.Errorf("bls message signature check failed with error: %s", err.Error())
-		return ErrVerifyMessage
-	}
-
 	r.SetCurrentDSBlock(dsblock)
-
 	return nil
 }
 
-func (r *RoleDsBackup) preConsensusProcessDsBlock(block proto.Message, response *pb.Message, payload *pb.ConsensusPayload) error {
+func (r *RoleDsBackup) preConsensusProcessDsBlock(block proto.Message, response *pb.Message, consensusType pb.ConsensusType) error {
 	sign := r.peerServer.PrivateKey.BlSSign(r.GetCurrentDSBlock().MHash().Bytes())
 	r.GetCurrentDSBlock().Header.Signature = sign.Serialize()
 
-	sig, err := r.peerServer.MsgSinger.SignHash(r.GetCurrentDSBlock().Hash().Bytes(), nil)
-	if err != nil {
-		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
-		return ErrSignMessage
-	}
-	response.Signature = sig
-
-	data, err := r.produceConsensusPayload(r.GetCurrentDSBlock(), pb.ConsensusType_DsBlockConsensus)
+	data, err := r.produceConsensusPayload(r.GetCurrentDSBlock(), consensusType)
 	if err != nil {
 		return nil
 	}
 	response.Payload = data
+	response.Signature = nil
+	messageHashBytes := util.Hash(response).Bytes()
+	response.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
 	return nil
 }
 
-func (r *RoleDsBackup) preConsensusProcessFinalBlock(block proto.Message, response *pb.Message, payload *pb.ConsensusPayload) error {
+func (r *RoleDsBackup) preConsensusProcessFinalBlock(block proto.Message, response *pb.Message, consensusType pb.ConsensusType) error {
 	sign := r.peerServer.PrivateKey.BlSSign(r.GetCurrentFinalBlock().MHash().Bytes())
 	r.GetCurrentFinalBlock().Header.Signature = sign.Serialize()
 	loggerDsBackup.Debugf("final block is %+v", r.GetCurrentFinalBlock())
@@ -461,37 +454,66 @@ func (r *RoleDsBackup) preConsensusProcessFinalBlock(block proto.Message, respon
 
 	r.GetCurrentFinalBlock().Header.DSCoinBase = append(r.GetCurrentFinalBlock().Header.DSCoinBase, r.peerServer.CoinBase)
 	loggerDsBackup.Debugf("final block is %+v", r.GetCurrentFinalBlock())
-	sig, err := r.peerServer.MsgSinger.SignHash(r.GetCurrentFinalBlock().Hash().Bytes(), nil)
-	if err != nil {
-		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
-		return ErrSignMessage
-	}
-	response.Signature = sig
-
-	data, err := r.produceConsensusPayload(r.GetCurrentFinalBlock(), pb.ConsensusType_FinalBlockConsensus)
+	data, err := r.produceConsensusPayload(r.GetCurrentFinalBlock(), consensusType)
 	if err != nil {
 		return err
 	}
 	response.Payload = data
+	response.Signature = nil
+	messageHashBytes := util.Hash(response).Bytes()
+	response.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
 	return nil
 }
 
-func (r *RoleDsBackup) preConsensusProcessVCBlock(block proto.Message, response *pb.Message, payload *pb.ConsensusPayload) error {
+func (r *RoleDsBackup) preConsensusProcessVCBlock(block proto.Message, response *pb.Message, consensusType pb.ConsensusType) error {
 	sign := r.peerServer.PrivateKey.BlSSign(r.GetCurrentVCBlock().Hash().Bytes())
 	r.GetCurrentVCBlock().Header.Signature = sign.Serialize()
-
-	sig, err := r.peerServer.MsgSinger.SignHash(r.GetCurrentVCBlock().Hash().Bytes(), nil)
-	if err != nil {
-		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
-		return ErrSignMessage
-	}
-	response.Signature = sig
-
-	data, err := r.produceConsensusPayload(r.GetCurrentVCBlock(), pb.ConsensusType_ViewChangeConsensus)
+	data, err := r.produceConsensusPayload(r.GetCurrentVCBlock(), consensusType)
 	if err != nil {
 		return err
 	}
 	response.Payload = data
+	response.Signature = nil
+	messageHashBytes := util.Hash(response).Bytes()
+	response.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
+	return nil
+}
+
+func (r *RoleDsBackup) preConsensusProcessSig2(block proto.Message, response *pb.Message, consensusType pb.ConsensusType) error {
+	var err error
+	// sign2 is signature of multiple signature in round 1.
+	sign2 := r.peerServer.PrivateKey.BlSSign(r.GetCurrentFinalBlock().Header.Signature)
+	loggerDsBackup.Debugf("final block is %+v", r.GetCurrentFinalBlock())
+	// verify sign2.
+	pub := &multibls.PubKey{}
+	pub.Deserialize(r.peerServer.PublicKey)
+	ret := sign2.BLSVerify(pub, r.GetCurrentFinalBlock().Header.Signature)
+	if !ret {
+		loggerDsBackup.Errorf("bls verify failed")
+	}
+	// produce final response message.
+	payload := &pb.ConsensusPayload{}
+	payload.Type = consensusType
+	payload.Msg = sign2.Serialize()
+	response.Payload, err = proto.Marshal(payload)
+	if err != nil {
+		logger.Errorf("marshal consensus payload message failed with error: %s", err.Error())
+		return ErrMarshalMessage
+	}
+	messageHashBytes := util.Hash(response).Bytes()
+	response.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
 	return nil
 }
 
@@ -532,8 +554,8 @@ func (r *RoleDsBackup) getConsensusData(consensusType pb.ConsensusType) (proto.M
 	}
 }
 
-func (r *RoleDsBackup) ComposeFinalResponse(consensusType pb.ConsensusType) (*pb.Message, error) {
-	response, err := r.produceConsensusMessage(consensusType, pb.Message_Consensus_FinalResponse)
+func (r *RoleDsBackup) ComposeResponse(consensusType pb.ConsensusType) (*pb.Message, error) {
+	response, err := r.produceConsensusMessage(consensusType, pb.Message_Consensus_Response)
 
 	if err != nil {
 		loggerDsBackup.Errorf("compose consensus message failed with error : %s", err.Error())
@@ -543,15 +565,31 @@ func (r *RoleDsBackup) ComposeFinalResponse(consensusType pb.ConsensusType) (*pb
 	return response, nil
 }
 
-func (r *RoleDsBackup) produceFinalResponse(block proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
+func (r *RoleDsBackup) ComposeFinalResponse(consensusType pb.ConsensusType) (*pb.Message, error) {
+	finalResponse, err := r.produceConsensusMessage(consensusType, pb.Message_Consensus_FinalResponse)
+
+	if err != nil {
+		loggerDsBackup.Errorf("compose consensus message failed with error : %s", err.Error())
+		return nil, ErrComposeMessage
+	}
+
+	return finalResponse, nil
+}
+
+func (r *RoleDsBackup) produceResponse(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
 	var err error
+	block, err := r.getConsensusData(consensusType)
+	if err != nil {
+		// TODO
+		return nil, ErrHandleInCurrentState
+	}
 	switch consensusType {
 	case pb.ConsensusType_DsBlockConsensus:
-		err = r.preConsensusProcessDsBlock(block, envelope, payload)
+		err = r.preConsensusProcessDsBlock(block, envelope, consensusType)
 	case pb.ConsensusType_FinalBlockConsensus:
-		err = r.preConsensusProcessFinalBlock(block, envelope, payload)
+		err = r.preConsensusProcessFinalBlock(block, envelope, consensusType)
 	case pb.ConsensusType_ViewChangeConsensus:
-		err = r.preConsensusProcessVCBlock(block, envelope, payload)
+		err = r.preConsensusProcessVCBlock(block, envelope, consensusType)
 	default:
 		return nil, ErrHandleInCurrentState
 	}
@@ -559,6 +597,37 @@ func (r *RoleDsBackup) produceFinalResponse(block proto.Message, envelope *pb.Me
 		return nil, err
 	}
 
+	return envelope, nil
+}
+
+func (r *RoleDsBackup) produceFinalResponse(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
+	var err error
+	sign2 := &multibls.Sig{}
+	payload := &pb.ConsensusPayload{}
+	payload.Type = consensusType
+
+	switch consensusType {
+	case pb.ConsensusType_DsBlockConsensus:
+		sign2 = r.peerServer.PrivateKey.BlSSign(r.GetCurrentDSBlock().Header.Signature)
+	case pb.ConsensusType_FinalBlockConsensus:
+		sign2 = r.peerServer.PrivateKey.BlSSign(r.GetCurrentFinalBlock().Header.Signature)
+	case pb.ConsensusType_ViewChangeConsensus:
+		sign2 = r.peerServer.PrivateKey.BlSSign(r.GetCurrentVCBlock().Header.Signature)
+	default:
+		return nil, ErrHandleInCurrentState
+	}
+	payload.Msg = sign2.Serialize()
+	envelope.Payload, err = proto.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	envelope.Signature = nil
+	messageHashBytes := util.Hash(envelope).Bytes()
+	envelope.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return nil, ErrSignMessage
+	}
 	return envelope, nil
 }
 

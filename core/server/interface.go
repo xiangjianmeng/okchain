@@ -48,6 +48,7 @@ type LookupMessageHandler interface {
 
 type ConsensusHandler interface {
 	VerifyBlock(msg *pb.Message, from *pb.PeerEndpoint, consensusType pb.ConsensusType) error
+	ComposeResponse(consensusType pb.ConsensusType) (*pb.Message, error)
 	ComposeFinalResponse(consensusType pb.ConsensusType) (*pb.Message, error)
 	StartViewChange(currentStage, lastStage pb.ConsensusType) error
 	GetCurrentDSBlock() *pb.DSBlock
@@ -85,7 +86,7 @@ type IRole interface {
 	ProcessTransaction(tx *pb.Transaction)
 	ProcessConsensusMsg(msg *pb.Message, from *pb.PeerEndpoint) error
 	Wait4PoWSubmission(ctx context.Context, cancle context.CancelFunc)
-	OnConsensusCompleted(err error) error
+	OnConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error
 	OnMircoBlockConsensusStarted(peer *pb.PeerEndpoint) error
 	OnViewChangeConsensusStarted() error
 	VerifyVCBlock(msg *pb.Message, from *pb.PeerEndpoint) (*pb.VCBlock, error)

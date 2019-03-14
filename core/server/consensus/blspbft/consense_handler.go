@@ -24,10 +24,11 @@ limitations under the License.
 package blspbft
 
 import (
+	"reflect"
 	"sync"
 
-	logging "github.com/ok-chain/okchain/log"
 	ps "github.com/ok-chain/okchain/core/server"
+	logging "github.com/ok-chain/okchain/log"
 	pb "github.com/ok-chain/okchain/protos"
 )
 
@@ -65,6 +66,17 @@ func (ch *ConsensusHandler) VerifyMessage(msg *pb.Message, from *pb.PeerEndpoint
 	}
 
 	return nil
+}
+
+// compose response message according to current consensus type
+func (ch *ConsensusHandler) ComposedResponse(r ps.IRole) (*pb.Message, error) {
+	loggerCHandler.Debugf("compose response message in %s, CurRole<%s>", pb.ConsensusType_name[int32(ch.currentType)], reflect.TypeOf(r))
+	msg, err := r.ComposeResponse(ch.currentType)
+	if err != nil {
+		loggerCHandler.Debugf("compose response message error: %s", err.Error())
+		return nil, ErrComposeMessage
+	}
+	return msg, nil
 }
 
 // compose final response message according to current consensus type

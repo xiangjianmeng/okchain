@@ -34,6 +34,7 @@ import (
 	"github.com/ok-chain/okchain/p2p/gossip/filter"
 	"github.com/ok-chain/okchain/p2p/gossip/gossip"
 	pb "github.com/ok-chain/okchain/protos"
+	"github.com/ok-chain/okchain/util"
 )
 
 var loggerDsLead = logging.MustGetLogger("dsLeadRole")
@@ -55,9 +56,9 @@ func newRoleDsLead(peer *ps.PeerServer) ps.IRole {
 	return r
 }
 
-func (r *RoleDsLead) onDsBlockConsensusCompleted(err error) error {
+func (r *RoleDsLead) onDsBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 	// todo: handle err
-
+	dsBlockSign2 := &pb.DSBlockWithSig2{}
 	// 1. persist ds block and update network topology
 	dsblock := r.GetCurrentDSBlock()
 	r.peerServer.ConsensusData.PoWSubList.Clear()
@@ -75,23 +76,23 @@ func (r *RoleDsLead) onDsBlockConsensusCompleted(err error) error {
 	// 3. send ds block to all sharding nodes
 	msg := &pb.Message{Type: pb.Message_Node_ProcessDSBlock}
 	msg.Timestamp = pb.CreateUtcTimestamp()
-
-	sig, err := r.peerServer.MsgSinger.SignHash(dsblock.Hash().Bytes(), nil)
+	dsBlockSign2.Block = dsblock
+	dsBlockSign2.Sig2 = boolMapSign2
+	data, err := proto.Marshal(dsBlockSign2)
 	if err != nil {
-		loggerDsLead.Errorf("bls message sign failed with error: %s", err.Error())
-		return ErrSignMessage
-	}
-	msg.Signature = sig
-
-	data, err := proto.Marshal(dsblock)
-	if err != nil {
-		loggerDsLead.Errorf("dsblock marshal failed with error: %s", err.Error())
+		loggerDsLead.Errorf("dsBlockSign2 marshal failed with error: %s", err.Error())
 		return ErrMarshalMessage
 	}
 
 	msg.Payload = data
 	msg.Peer = r.peerServer.SelfNode
-
+	msg.Signature = nil
+	messageHashBytes := util.Hash(msg).Bytes()
+	msg.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
 	msgData, err := proto.Marshal(msg)
 	if err != nil {
 		loggerDsLead.Errorf(err.Error())
@@ -105,7 +106,7 @@ func (r *RoleDsLead) onDsBlockConsensusCompleted(err error) error {
 	return nil
 }
 
-func (r *RoleDsLead) onFinalBlockConsensusCompleted(err error) error {
+func (r *RoleDsLead) onFinalBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 	//todo: handle err
 	err = r.onFinalBlockReady(r.GetCurrentFinalBlock())
 	if err != nil {
@@ -129,7 +130,7 @@ func (r *RoleDsLead) onFinalBlockConsensusCompleted(err error) error {
 	msg := &pb.Message{Type: pb.Message_Node_ProcessFinalBlock}
 	msg.Timestamp = pb.CreateUtcTimestamp()
 
-	data, err := proto.Marshal(r.GetCurrentFinalBlock())
+	data, err := proto.Marshal(&pb.TxBlockWithSig2{r.GetCurrentFinalBlock(), boolMapSign2})
 	if err != nil {
 		loggerDsLead.Errorf("final block marshal failed with error: %s", err.Error())
 		return ErrMarshalMessage
@@ -137,13 +138,13 @@ func (r *RoleDsLead) onFinalBlockConsensusCompleted(err error) error {
 
 	msg.Payload = data
 	msg.Peer = r.peerServer.SelfNode
-	sig, err := r.peerServer.MsgSinger.SignHash(r.GetCurrentFinalBlock().Hash().Bytes(), nil)
+	msg.Signature = nil
+	messageHashBytes := util.Hash(msg).Bytes()
+	msg.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
 	if err != nil {
-		loggerDsLead.Errorf("bls message sign failed with error: %s", err.Error())
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
 		return ErrSignMessage
 	}
-
-	msg.Signature = sig
 
 	msgData, err := proto.Marshal(msg)
 	if err != nil {
@@ -305,77 +306,89 @@ func (r *RoleDsLead) onDsBlockConsensusStart() {
 	r.dsConsensusLeader.InitiateConsensus(announce, r.peerServer.Committee, r.imp)
 }
 
-func (r *RoleDsLead) preConsensusProcessDsBlock(block proto.Message, announce *pb.Message, payload *pb.ConsensusPayload) error {
+func (r *RoleDsLead) preConsensusProcessDsBlock(block proto.Message, announce *pb.Message, consensusType pb.ConsensusType) error {
 	var dsblock *pb.DSBlock
 	var ok bool
-	if dsblock, ok = block.(*pb.DSBlock); ok {
-		sig, err := r.peerServer.MsgSinger.SignHash(dsblock.Hash().Bytes(), nil)
-		if err != nil {
-			loggerDsLead.Errorf("bls message sign failed with error: %s", err.Error())
-			return ErrSignMessage
-		}
-		announce.Signature = sig
+	if dsblock, ok = block.(*pb.DSBlock); !ok {
+		loggerDsBackup.Errorf("expect DSBlock not %+v", block)
+		return ErrComposeMessage
 	}
 
-	data, err := r.produceConsensusPayload(dsblock, pb.ConsensusType_DsBlockConsensus)
+	data, err := r.produceConsensusPayload(dsblock, consensusType)
 	if err != nil {
 		return err
 	}
 	announce.Payload = data
+	announce.Signature = nil
+	messageHashBytes := util.Hash(announce).Bytes()
+	announce.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
 	return nil
 }
 
-func (r *RoleDsLead) preConsensusProcessFinalBlock(block proto.Message, announce *pb.Message, payload *pb.ConsensusPayload) error {
+func (r *RoleDsLead) preConsensusProcessFinalBlock(block proto.Message, announce *pb.Message, consensusType pb.ConsensusType) error {
 	var txblock *pb.TxBlock
 	var ok bool
-	if txblock, ok = block.(*pb.TxBlock); ok {
-		sig, err := r.peerServer.MsgSinger.SignHash(txblock.Hash().Bytes(), nil)
-
-		if err != nil {
-			loggerDsLead.Errorf("bls message sign failed with error: %s", err.Error())
-			return ErrSignMessage
-		}
-		announce.Signature = sig
+	if txblock, ok = block.(*pb.TxBlock); !ok {
+		loggerDsBackup.Errorf("expect TxBlock not %+v", block)
+		return ErrComposeMessage
 	}
 
-	data, err := r.produceConsensusPayload(txblock, pb.ConsensusType_DsBlockConsensus)
+	data, err := r.produceConsensusPayload(txblock, consensusType)
 	if err != nil {
 		return err
 	}
 	announce.Payload = data
+	announce.Signature = nil
+	messageHashBytes := util.Hash(announce).Bytes()
+	announce.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
 	return nil
 }
 
-func (r *RoleDsLead) preConsensusProcessVCBlock(block proto.Message, announce *pb.Message, payload *pb.ConsensusPayload) error {
+func (r *RoleDsLead) preConsensusProcessVCBlock(block proto.Message, announce *pb.Message, consensusType pb.ConsensusType) error {
 	var vcblock *pb.VCBlock
 	var ok bool
-	if vcblock, ok = block.(*pb.VCBlock); ok {
-		loggerDsLead.Debugf("vcblock is %+v", vcblock)
-		sig, err := r.peerServer.MsgSinger.SignHash(vcblock.Hash().Bytes(), nil)
-		if err != nil {
-			loggerDsLead.Errorf("bls message sign failed with error: %s", err.Error())
-			return ErrSignMessage
-		}
-		announce.Signature = sig
+	if vcblock, ok = block.(*pb.VCBlock); !ok {
+		loggerDsBackup.Errorf("expect VCBlock not %+v", block)
+		return ErrComposeMessage
 	}
 
-	data, err := r.produceConsensusPayload(vcblock, pb.ConsensusType_ViewChangeConsensus)
+	data, err := r.produceConsensusPayload(vcblock, consensusType)
 	if err != nil {
 		return err
 	}
 	announce.Payload = data
+	announce.Signature = nil
+	messageHashBytes := util.Hash(announce).Bytes()
+	announce.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
 	return nil
 }
 
-func (r *RoleDsLead) produceAnnounce(block proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
+func (r *RoleDsLead) produceAnnounce(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
 	var err error
+	block, err := r.getConsensusData(consensusType)
+	if err != nil {
+		// TODO
+		return nil, ErrHandleInCurrentState
+	}
 	switch consensusType {
 	case pb.ConsensusType_DsBlockConsensus:
-		err = r.preConsensusProcessDsBlock(block, envelope, payload)
+		err = r.preConsensusProcessDsBlock(block, envelope, consensusType)
 	case pb.ConsensusType_FinalBlockConsensus:
-		err = r.preConsensusProcessFinalBlock(block, envelope, payload)
+		err = r.preConsensusProcessFinalBlock(block, envelope, consensusType)
 	case pb.ConsensusType_ViewChangeConsensus:
-		err = r.preConsensusProcessVCBlock(block, envelope, payload)
+		err = r.preConsensusProcessVCBlock(block, envelope, consensusType)
 	default:
 		return nil, ErrHandleInCurrentState
 	}

@@ -94,6 +94,10 @@ It has these top-level messages:
 	ConfigRpcResponse
 	InformDs
 	InformSharding
+	BoolMapSignature
+	TxBlockWithSig2
+	DSBlockWithSig2
+	VCBlockWithSig2
 */
 package protos
 

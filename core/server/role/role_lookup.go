@@ -28,8 +28,8 @@ import (
 	"math/rand"
 
 	"github.com/golang/protobuf/proto"
-	logging "github.com/ok-chain/okchain/log"
 	ps "github.com/ok-chain/okchain/core/server"
+	logging "github.com/ok-chain/okchain/log"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/spf13/viper"
 )
@@ -55,12 +55,27 @@ func newRoleLookup(peer *ps.PeerServer) ps.IRole {
 }
 
 func (r *RoleLookup) ProcessDSBlock(pbMsg *pb.Message, from *pb.PeerEndpoint) error {
-	dsblock := &pb.DSBlock{}
-	err := proto.Unmarshal(pbMsg.Payload, dsblock)
+	// verify message signature.
+	var err error
+	err = r.peerServer.MessageVerify(pbMsg)
 	if err != nil {
-		lookupLogger.Errorf("unmarshal dsblock message failed with error: %s", err.Error())
+		idleLogger.Errorf("message signature verify failed with error: %s", err.Error())
+		return ErrVerifyMessage
+	}
+	// verify signature in round 2.
+	dsBlockSign2 := &pb.DSBlockWithSig2{}
+	err = proto.Unmarshal(pbMsg.Payload, dsBlockSign2)
+	if err != nil {
+		idleLogger.Errorf("unmarshal dsBlockSign2 message failed with error: %s", err.Error())
 		return err
 	}
+	err = r.peerServer.VerifyDSBlockMultiSign2(dsBlockSign2)
+	if err != nil {
+		idleLogger.Errorf("verify dsBlockSign2 failed with error: %s", err.Error())
+		return nil
+	}
+	// verify and insert dsblock.
+	dsblock := dsBlockSign2.Block
 
 	err = r.onDsBlockReady(dsblock)
 	if err != nil {
@@ -74,12 +89,28 @@ func (r *RoleLookup) ProcessDSBlock(pbMsg *pb.Message, from *pb.PeerEndpoint) er
 }
 
 func (r *RoleLookup) ProcessFinalBlock(pbMsg *pb.Message, from *pb.PeerEndpoint) error {
-	txblock := &pb.TxBlock{}
-	err := proto.Unmarshal(pbMsg.Payload, txblock)
+	// verify message signature.
+	var err error
+	peerServer := r.peerServer
+	err = peerServer.MessageVerify(pbMsg)
 	if err != nil {
-		lookupLogger.Errorf("txblock unmarshal failed with error: %s", err.Error())
+		idleLogger.Errorf("message signature verify failed with error: %s", err.Error())
+		return ErrVerifyMessage
+	}
+	// verify signature in round 2.
+	txBlockSign2 := &pb.TxBlockWithSig2{}
+	err = proto.Unmarshal(pbMsg.Payload, txBlockSign2)
+	if err != nil {
+		idleLogger.Errorf("unmarshal dsBlockSign2 message failed with error: %s", err.Error())
 		return err
 	}
+	err = peerServer.VerifyFinalBlockMultiSign2(txBlockSign2)
+	if err != nil {
+		idleLogger.Errorf("verify dsBlockSign2 failed with error: %s", err.Error())
+		return nil
+	}
+	// verify and insert dsblock.
+	txblock := txBlockSign2.Block
 
 	return r.onFinalBlockReady(txblock)
 }

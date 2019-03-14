@@ -21,8 +21,8 @@ package state
 import (
 	"reflect"
 
-	logging "github.com/ok-chain/okchain/log"
 	ps "github.com/ok-chain/okchain/core/server"
+	logging "github.com/ok-chain/okchain/log"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )
@@ -50,7 +50,8 @@ func (state *StateBase) processConsensusMsg(r ps.IRole, msg *pb.Message, from *p
 		msg.Type == pb.Message_Consensus_FinalCommit ||
 		msg.Type == pb.Message_Consensus_FinalChallenge ||
 		msg.Type == pb.Message_Consensus_FinalResponse ||
-		msg.Type == pb.Message_Consensus_FinalCollectiveSig {
+		msg.Type == pb.Message_Consensus_FinalCollectiveSig ||
+		msg.Type == pb.Message_Consensus_BroadCastBlock {
 
 		logger.Debugf("[%s]: ProcessMsg: %s, CurRole<%s>, CurState<%s>", util.GId,
 			msg.Type.String(), reflect.TypeOf(r), reflect.TypeOf(state.imp))

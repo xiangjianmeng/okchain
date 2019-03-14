@@ -21,7 +21,6 @@ package role
 import (
 	"context"
 
-	"github.com/golang/protobuf/proto"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )
@@ -31,22 +30,37 @@ func (r *RoleBase) VerifyBlock(msg *pb.Message, from *pb.PeerEndpoint, consensus
 	return nil
 }
 
+func (r *RoleBase) ComposeResponse(consensusType pb.ConsensusType) (*pb.Message, error) {
+	util.OkChainPanic("Invalid invoke")
+	return nil, nil
+}
+
 func (r *RoleBase) ComposeFinalResponse(consensusType pb.ConsensusType) (*pb.Message, error) {
 	util.OkChainPanic("Invalid invoke")
 	return nil, nil
 }
 
-func (r *RoleBase) produceAnnounce(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
+func (r *RoleBase) produceAnnounce(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
 	util.OkChainPanic("Invalid invoke")
 	return nil, nil
 }
 
-func (r *RoleBase) produceFinalResponse(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
+func (r *RoleBase) produceFinalCollectiveSig(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
 	util.OkChainPanic("Invalid invoke")
 	return nil, nil
 }
 
-func (r *RoleBase) produceFinalCollectiveSig(input proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
+func (r *RoleBase) produceResponse(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
+	util.OkChainPanic("Invalid invoke")
+	return nil, nil
+}
+
+func (r *RoleBase) produceFinalResponse(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
+	util.OkChainPanic("Invalid invoke")
+	return nil, nil
+}
+
+func (r *RoleBase) produceBroadCastBlock(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
 	util.OkChainPanic("Invalid invoke")
 	return nil, nil
 }
@@ -65,7 +79,7 @@ func (r *RoleBase) OnViewChangeConsensusStarted() error {
 
 func (r *RoleBase) resetShardingNodes(dsblock *pb.DSBlock) { util.OkChainPanic("Invalid invoke") }
 
-func (r *RoleBase) OnConsensusCompleted(err error) error {
+func (r *RoleBase) OnConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 	util.OkChainPanic("Invalid invoke")
 	return nil
 }
@@ -84,12 +98,12 @@ func (r *RoleBase) onWait4MicroBlockSubmissionDone() error {
 	return nil
 }
 
-func (r *RoleBase) onDsBlockConsensusCompleted(err error) error {
+func (r *RoleBase) onDsBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 	util.OkChainPanic("Invalid invoke")
 	return nil
 }
 
-func (r *RoleBase) onFinalBlockConsensusCompleted(err error) error {
+func (r *RoleBase) onFinalBlockConsensusCompleted(err error, boolMapSign2 *pb.BoolMapSignature) error {
 	util.OkChainPanic("Invalid invoke")
 	return nil
 }

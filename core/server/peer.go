@@ -36,6 +36,8 @@ import (
 	"github.com/ok-chain/okchain/util"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
+	"math"
+	"sort"
 )
 
 // PeerServer implementation of the Peer service
@@ -951,6 +953,7 @@ func (p *PeerServer) Sync() {
 	}()
 }
 
+// TODO: delete this function after being replaced with MessageVerify.
 func (p *PeerServer) MsgVerify(message *pb.Message, hash []byte) error {
 	ret, err := p.MsgSinger.VerifyHash(hash, message.Signature, message.Peer.Pubkey)
 	if err != nil {
@@ -959,6 +962,92 @@ func (p *PeerServer) MsgVerify(message *pb.Message, hash []byte) error {
 
 	if !ret {
 		return errors.New("check signature failed")
+	}
+	return nil
+}
+
+func (p *PeerServer) MessageVerify(message *pb.Message) error {
+	msgSignature := message.Signature
+	message.Signature = nil
+	msgHashBytes := util.Hash(message).Bytes()
+	ret, err := p.MsgSinger.VerifyHash(msgHashBytes, msgSignature, message.Peer.Pubkey)
+	message.Signature = msgSignature
+	if err != nil {
+		return err
+	}
+	if !ret {
+		return errors.New("check signature failed")
+	}
+	return nil
+}
+
+func (p *PeerServer) VerifyDSBlockMultiSign2(dsBlockSign2 *pb.DSBlockWithSig2) error {
+	var err error
+	dsblock := dsBlockSign2.Block
+	if dsblock.Header.BlockNumber > 1 {
+		dsCommittee := p.DsBlockChain().GetBlock(dsblock.ParentHash(), dsblock.Header.BlockNumber-1).(*pb.DSBlock).Body.GetCommittee()
+		sortedCommittee := []*pb.PeerEndpoint{}
+		for i := 0; i < len(dsCommittee); i++ {
+			sortedCommittee = append(sortedCommittee, dsCommittee[i])
+		}
+		sort.Sort(pb.ByPubkey{PeerEndpointList: sortedCommittee})
+		multiBlsSign2 := &multibls.Sig{}
+		err = multiBlsSign2.Deserialize(dsBlockSign2.Sig2.Signature)
+		if err != nil {
+			return err
+		}
+		expected := int(math.Floor(float64(len(sortedCommittee))*blockchain.ToleranceFraction + 1))
+		err = p.VerifyMultiSignByBoolMap(dsBlockSign2.Sig2.BoolMap, sortedCommittee, multiBlsSign2, dsblock.Header.Signature, expected)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *PeerServer) VerifyFinalBlockMultiSign2(txBlockSign2 *pb.TxBlockWithSig2) error {
+	var err error
+	txblock := txBlockSign2.Block
+	sortedCommittee := []*pb.PeerEndpoint{}
+	dsCommittee := p.DsBlockChain().CurrentBlock().(*pb.DSBlock).Body.GetCommittee()
+	for i := 0; i < len(dsCommittee); i++ {
+		sortedCommittee = append(sortedCommittee, dsCommittee[i])
+	}
+	sort.Sort(pb.ByPubkey{PeerEndpointList: sortedCommittee})
+	multiBlsSign2 := &multibls.Sig{}
+	err = multiBlsSign2.Deserialize(txBlockSign2.Sig2.Signature)
+	if err != nil {
+		return err
+	}
+	expected := int(math.Floor(float64(len(sortedCommittee))*blockchain.ToleranceFraction + 1))
+	err = p.VerifyMultiSignByBoolMap(txBlockSign2.Sig2.BoolMap, sortedCommittee, multiBlsSign2, txblock.Header.Signature, expected)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *PeerServer) VerifyMultiSignByBoolMap(boolMap []bool, committeeSort pb.PeerEndpointList, signature *multibls.Sig, hash []byte, expected int) error {
+	if len(boolMap) != len(committeeSort) {
+		return fmt.Errorf("boolMap length not equal to committeeSort length")
+	}
+	counter := 0
+	multiPubkey2 := &multibls.PubKey{}
+
+	for i := 0; i < len(boolMap); i++ {
+		pubKey := multibls.PubKey{}
+		if boolMap[i] {
+			pubKey.Deserialize(committeeSort[i].Pubkey)
+			multiPubkey2.Add(&pubKey.PublicKey)
+			counter++
+		}
+	}
+	if counter < expected {
+		return fmt.Errorf("signatures are not enough")
+	}
+	verified := signature.BLSVerify(multiPubkey2, hash)
+	if !verified {
+		return fmt.Errorf("verifying signatures failed")
 	}
 	return nil
 }

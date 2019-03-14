@@ -28,9 +28,10 @@ import (
 	"reflect"
 
 	"github.com/golang/protobuf/proto"
-	logging "github.com/ok-chain/okchain/log"
 	ps "github.com/ok-chain/okchain/core/server"
+	logging "github.com/ok-chain/okchain/log"
 	pb "github.com/ok-chain/okchain/protos"
+	"github.com/ok-chain/okchain/util"
 )
 
 type RoleShardingBackup struct {
@@ -175,13 +176,18 @@ func (r *RoleShardingBackup) verifyMicroBlock(msg *pb.Message, consensusType pb.
 	return nil
 }
 
-func (r *RoleShardingBackup) produceFinalResponse(block proto.Message, envelope *pb.Message, payload *pb.ConsensusPayload, consensusType pb.ConsensusType) (*pb.Message, error) {
+func (r *RoleShardingBackup) produceResponse(envelope *pb.Message, consensusType pb.ConsensusType) (*pb.Message, error) {
 	var err error
+	block, err := r.getConsensusData(consensusType)
+	if err != nil {
+		// TODO
+		return nil, ErrHandleInCurrentState
+	}
 	switch consensusType {
 	case pb.ConsensusType_MicroBlockConsensus:
-		err = r.preConsensusProcessMicroBlock(block, envelope, payload)
+		err = r.preConsensusProcessMicroBlock(block, envelope, consensusType)
 	case pb.ConsensusType_ViewChangeConsensus:
-		err = r.preConsensusProcessVCBlock(block, envelope, payload)
+		err = r.preConsensusProcessVCBlock(block, envelope, consensusType)
 	default:
 		return nil, ErrHandleInCurrentState
 	}
@@ -192,46 +198,46 @@ func (r *RoleShardingBackup) produceFinalResponse(block proto.Message, envelope 
 	return envelope, nil
 }
 
-func (r *RoleShardingBackup) preConsensusProcessMicroBlock(block proto.Message, response *pb.Message, payload *pb.ConsensusPayload) error {
+func (r *RoleShardingBackup) preConsensusProcessMicroBlock(block proto.Message, response *pb.Message, consensusType pb.ConsensusType) error {
 	sign := r.peerServer.PrivateKey.BlSSign(r.currentMicroBlock.Hash().Bytes())
 	r.currentMicroBlock.Header.Signature = sign.Serialize()
 
-	sig, err := r.peerServer.MsgSinger.SignHash(r.currentMicroBlock.Hash().Bytes(), nil)
-	if err != nil {
-		loggerShardingBackup.Errorf("bls message sign failed with error: %s", err.Error())
-		return ErrSignMessage
-	}
-	response.Signature = sig
-
-	data, err := r.produceConsensusPayload(r.GetCurrentMicroBlock(), pb.ConsensusType_MicroBlockConsensus)
+	data, err := r.produceConsensusPayload(r.GetCurrentMicroBlock(), consensusType)
 	if err != nil {
 		return err
 	}
 	response.Payload = data
+	response.Signature = nil
+	messageHashBytes := util.Hash(response).Bytes()
+	response.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
 	return nil
 }
 
-func (r *RoleShardingBackup) preConsensusProcessVCBlock(block proto.Message, response *pb.Message, payload *pb.ConsensusPayload) error {
+func (r *RoleShardingBackup) preConsensusProcessVCBlock(block proto.Message, response *pb.Message, consensusType pb.ConsensusType) error {
 	sign := r.peerServer.PrivateKey.BlSSign(r.GetCurrentVCBlock().Hash().Bytes())
 	r.GetCurrentVCBlock().Header.Signature = sign.Serialize()
 
-	sig, err := r.peerServer.MsgSinger.SignHash(r.GetCurrentVCBlock().Hash().Bytes(), nil)
-	if err != nil {
-		loggerShardingBackup.Errorf("bls message sign failed with error: %s", err.Error())
-		return ErrSignMessage
-	}
-	response.Signature = sig
-
-	data, err := r.produceConsensusPayload(r.GetCurrentVCBlock(), pb.ConsensusType_ViewChangeConsensus)
+	data, err := r.produceConsensusPayload(r.GetCurrentVCBlock(), consensusType)
 	if err != nil {
 		return err
 	}
 	response.Payload = data
+	response.Signature = nil
+	messageHashBytes := util.Hash(response).Bytes()
+	response.Signature, err = r.peerServer.MsgSinger.SignHash(messageHashBytes, nil)
+	if err != nil {
+		loggerDsBackup.Errorf("bls message sign failed with error: %s", err.Error())
+		return ErrSignMessage
+	}
 	return nil
 }
 
-func (r *RoleShardingBackup) ComposeFinalResponse(consensusType pb.ConsensusType) (*pb.Message, error) {
-	response, err := r.produceConsensusMessage(consensusType, pb.Message_Consensus_FinalResponse)
+func (r *RoleShardingBackup) ComposeResponse(consensusType pb.ConsensusType) (*pb.Message, error) {
+	response, err := r.produceConsensusMessage(consensusType, pb.Message_Consensus_Response)
 	if err != nil {
 		loggerShardingBackup.Errorf("compose micro block consensus failed with error: %s", err.Error())
 		return response, err

@@ -27,8 +27,8 @@ const (
 
 	Mercury = 1
 	Venus   = 1e2
-	Earth	= 1e4
-	Mars	= 1e6
-	Jupiter	= 1e8
-	Okp	    = 1e10
+	Earth   = 1e4
+	Mars    = 1e6
+	Jupiter = 1e8
+	Okp     = 1e10
 )

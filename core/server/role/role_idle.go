@@ -26,14 +26,13 @@ package role
 import (
 	"bytes"
 	"context"
-	"time"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/ok-chain/okchain/config"
 	ps "github.com/ok-chain/okchain/core/server"
 	"github.com/ok-chain/okchain/crypto/multibls"
 	logging "github.com/ok-chain/okchain/log"
 	pb "github.com/ok-chain/okchain/protos"
+	"time"
 )
 
 type RoleIdle struct {

@@ -164,7 +164,7 @@ func (cl *ConsensusLead) processMessageFinalResponse(msg *pb.Message, from *pb.P
 	if res {
 		cl.counter = 0
 		// notify sharding lead or ds lead
-		err := cl.role.OnConsensusCompleted(nil)
+		err := cl.role.OnConsensusCompleted(nil, nil)
 		if err != nil {
 			return err
 		}
