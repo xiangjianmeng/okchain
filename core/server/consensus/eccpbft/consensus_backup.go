@@ -24,8 +24,8 @@ limitations under the License.
 package eccpbft
 
 import (
-	logging "github.com/ok-chain/okchain/log"
 	ps "github.com/ok-chain/okchain/core/server"
+	logging "github.com/ok-chain/okchain/log"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )
@@ -74,11 +74,14 @@ func (cb *ConsensusBackup) send2Lead(msgType pb.Message_Type) error {
 	res.Type = msgType
 	res.Peer = cb.peerServer.SelfNode
 	loggerBackup.Infof("send message to: %s", cb.leader)
-	err := cb.peerServer.Multicast(res, pb.PeerEndpointList{cb.leader})
-	if err != nil {
-		loggerBackup.Errorf("send message to all DS node failed")
-	}
-	return err
+
+	go func() {
+		err := cb.peerServer.Multicast(res, pb.PeerEndpointList{cb.leader})
+		if err != nil {
+			loggerBackup.Errorf("send message to all DS node failed")
+		}
+	}()
+	return nil
 }
 
 func (cb *ConsensusBackup) processMessageAnnounce(msg *pb.Message, from *pb.PeerEndpoint) error {

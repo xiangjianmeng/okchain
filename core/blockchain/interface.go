@@ -41,7 +41,7 @@ const (
 )
 
 func GetToleranceSize(group protos.PeerEndpointList) int {
-	return int(math.Floor(float64(len(group))*ToleranceFraction)) + 1
+	return int(math.Floor(float64(len(group)-1)*ToleranceFraction)) + 1
 }
 
 type IBasicBlockChain interface {

@@ -28,8 +28,8 @@ import (
 	"sync"
 	"time"
 
-	logging "github.com/ok-chain/okchain/log"
 	ps "github.com/ok-chain/okchain/core/server"
+	logging "github.com/ok-chain/okchain/log"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )
@@ -81,7 +81,7 @@ func (cl *ConsensusLead) InitiateConsensus(msg *pb.Message, to []*pb.PeerEndpoin
 	cl.state = ANNOUNCE_DONE
 
 	cl.consensusBackupNodes = to
-	cl.toleranceSize = int(math.Floor(float64(cl.consensusBackupNodes.Length())*ToleranceFraction)) + 1
+	cl.toleranceSize = int(math.Floor(float64(cl.consensusBackupNodes.Length()-1)*ToleranceFraction)) + 1
 	loggerLead.Infof("toleranceSize: %d", cl.toleranceSize)
 
 	cl.sendMsg2Backups(msg)
@@ -89,10 +89,12 @@ func (cl *ConsensusLead) InitiateConsensus(msg *pb.Message, to []*pb.PeerEndpoin
 }
 
 func (cl *ConsensusLead) sendMsg2Backups(msg *pb.Message) error {
-	err := cl.peerServer.Multicast(msg, cl.consensusBackupNodes)
-	if err != nil {
-		loggerLead.Errorf("send message to all DS node failed")
-	}
+	go func() {
+		err := cl.peerServer.Multicast(msg, cl.consensusBackupNodes)
+		if err != nil {
+			loggerLead.Errorf("send message to all DS node failed")
+		}
+	}()
 
 	return nil
 }
@@ -101,11 +103,13 @@ func (cl *ConsensusLead) send2Backups(msgType pb.Message_Type) error {
 	res := &pb.Message{}
 	res.Type = msgType
 	res.Peer = cl.peerServer.SelfNode
-	err := cl.peerServer.Multicast(res, cl.consensusBackupNodes)
-	if err != nil {
-		loggerLead.Errorf("send message to all DS node failed")
-	}
 
+	go func() {
+		err := cl.peerServer.Multicast(res, cl.consensusBackupNodes)
+		if err != nil {
+			loggerLead.Errorf("send message to all DS node failed")
+		}
+	}()
 	return nil
 }
 

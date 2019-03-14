@@ -1461,45 +1461,17 @@ func (cs *naiveCryptoService) revoke(pkiID common.PKIidType) {
 
 var expirationTimes map[string]time.Time = map[string]time.Time{}
 
-func NewGossipInstanceWithOnlyPull(portPrefix int, id int, maxMsgCount int, boot ...int) Gossip {
-	port := id + portPrefix
-	conf := &Config{
-		BindPort:                   port,
-		BootstrapPeers:             bootPeers(portPrefix, boot...),
-		ID:                         fmt.Sprintf("p%d", id),
-		MaxBlockCountToStore:       maxMsgCount,
-		MaxPropagationBurstLatency: time.Duration(1000) * time.Millisecond,
-		MaxPropagationBurstSize:    10,
-		PropagateIterations:        0,
-		PropagatePeerNum:           0,
-		PullInterval:               time.Duration(1000) * time.Millisecond,
-		PullPeerNum:                20,
-		InternalEndpoint:           fmt.Sprintf("0.0.0.0:%d", port),
-		ExternalEndpoint:           fmt.Sprintf("1.2.3.4:%d", port),
-		PublishCertPeriod:          time.Duration(0) * time.Second,
-		PublishStateInfoInterval:   time.Duration(1) * time.Second,
-		RequestStateInfoInterval:   time.Duration(1) * time.Second,
-	}
-
-	cryptoService := &naiveCryptoService{}
-	selfID := api.PeerIdentityType(conf.InternalEndpoint)
-	g := NewGossipServiceWithServer(conf, &orgCryptoService{}, cryptoService,
-		selfID, nil, nil)
-	return g
+func NewGossipInstance(port int, id string, maxMsgCount int, isBoot bool, grpcServer *grpc.Server) Gossip {
+	return newGossipInstanceWithCustomMCS(port, id, maxMsgCount, &naiveCryptoService{}, isBoot, grpcServer)
 }
 
-func NewGossipInstance(portPrefix int, id int, maxMsgCount int, isBoot bool, grpcServer *grpc.Server) Gossip {
-	return newGossipInstanceWithCustomMCS(portPrefix, id, maxMsgCount, &naiveCryptoService{}, isBoot, grpcServer)
-}
-
-func newGossipInstanceWithCustomMCS(portPrefix int, id int, maxMsgCount int, mcs api.MessageCryptoService, isBoot bool, grpcServer *grpc.Server) Gossip {
-	port := id + portPrefix
+func newGossipInstanceWithCustomMCS(port int, id string, maxMsgCount int, mcs api.MessageCryptoService, isBoot bool, grpcServer *grpc.Server) Gossip {
 	ip := util.GetLocalIpAddr()
-	//fmt.Println("local_ip:", ip)
+
 	conf := &Config{
 		BindPort:                   port,
-		BootstrapPeers:             lookupPeers(isBoot),
-		ID:                         fmt.Sprintf("p%d", id),
+		BootstrapPeers:             bootPeers(isBoot),
+		ID:                         id,
 		MaxBlockCountToStore:       maxMsgCount,
 		MaxPropagationBurstLatency: time.Duration(500) * time.Millisecond,
 		MaxPropagationBurstSize:    1,
@@ -1520,36 +1492,7 @@ func newGossipInstanceWithCustomMCS(portPrefix int, id int, maxMsgCount int, mcs
 	return g
 }
 
-func bootPeers(portPrefix int, ids ...int) []string {
-	peers := []string{}
-
-	lookupAddressList := strings.Split(viper.GetString("peer.lookupNodeUrl"), "|")
-	var lookupIpPort string
-	for _, addr := range lookupAddressList {
-		if len(addr) > 0 {
-			lookupIpPort = addr
-			break
-		}
-	}
-	var id int
-	if len(lookupIpPort) > 0 {
-		if len(ids) > 0 {
-			id = ids[0]
-		}
-		ipPort := strings.Split(lookupIpPort, ":")
-		if len(ipPort) > 0 {
-			if ipPort[0] == "" {
-				ipPort[0] = util.GetLocalIpAddr()
-			}
-			peers = append(peers, fmt.Sprintf("%s:%d", ipPort[0], id+portPrefix))
-		}
-	}
-
-	fmt.Println("!!!bootPeers: ", peers)
-	return peers
-}
-
-func lookupPeers(isBoot bool) []string {
+func bootPeers(isBoot bool) []string {
 	peers := []string{}
 	if !isBoot {
 		lookupAddressList := strings.Split(viper.GetString("peer.lookupNodeUrl"), "|")
