@@ -222,11 +222,12 @@ func startPowLead(r *RoleShardingLead, txblock *pb.TxBlock) error {
 	}
 	res.Signature = sig
 
-	err = r.peerServer.Multicast(res, r.peerServer.Committee)
-	if err != nil {
-		loggerShardingBase.Errorf("send message to all DS nodes failed")
-		return ErrMultiCastMessage
-	}
+	go func() {
+		err = r.peerServer.Multicast(res, r.peerServer.Committee)
+		if err != nil {
+			loggerShardingBase.Errorf("send message to all DS nodes failed")
+		}
+	}()
 
 	r.ChangeState(ps.STATE_WAITING_DSBLOCK)
 	loggerShardingBase.Debugf("waiting dsblock...")
@@ -262,11 +263,12 @@ func startPowBackup(r *RoleShardingBackup, txblock *pb.TxBlock) error {
 	}
 	res.Signature = sig
 
-	err = r.peerServer.Multicast(res, r.peerServer.Committee)
-	if err != nil {
-		loggerShardingBase.Errorf("send message to all DS nodes failed")
-		return ErrMultiCastMessage
-	}
+	go func() {
+		err = r.peerServer.Multicast(res, r.peerServer.Committee)
+		if err != nil {
+			loggerShardingBase.Errorf("send message to all DS nodes failed")
+		}
+	}()
 
 	r.ChangeState(ps.STATE_WAITING_DSBLOCK)
 	loggerShardingBase.Debugf("waiting dsblock...")

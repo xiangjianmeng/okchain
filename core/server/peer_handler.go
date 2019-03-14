@@ -204,15 +204,16 @@ func (d *P2PHandler) sendMessageToNewConnectedPeer() {
 		if err != nil {
 			peerLogger.Errorf("send message to peer %s failed, error: %s", d.ToPeerEndpoint.Id.Name, err.Error())
 		}
-		peerLogger.Debugf("waitgroup delete one!!!!")
-		d.Coordinator.msg.wg.Done()
+		if d.Coordinator.msg.data != nil {
+			peerLogger.Debugf("waitgroup delete one!!!!")
+			d.Coordinator.msg.wg.Done()
 
-		if err != nil {
-			d.Coordinator.msg.retStr = err.Error()
-		} else {
-			d.Coordinator.msg.retStr = ""
+			if err != nil {
+				d.Coordinator.msg.retStr = err.Error()
+			} else {
+				d.Coordinator.msg.retStr = ""
+			}
 		}
-
 	} else {
 		peerLogger.Errorf("chat with peer %s failed", d.ToPeerEndpoint.Id.Name)
 	}

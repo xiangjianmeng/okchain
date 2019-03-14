@@ -508,7 +508,7 @@ func (r *RoleBase) VerifyVCBlock(msg *pb.Message, from *pb.PeerEndpoint) (*pb.VC
 		logger.Errorf("last stage cannot match, actual is %+v, expected %+v", vcblock.Header.Stage, pb.ConsensusType_name[int32(r.peerServer.ConsensusData.LastStage)])
 		return nil, ErrVerifyBlock
 	}
-	if reflect.DeepEqual(vcblock.Header.NewLeader.Pubkey, r.GetNewLeader(r.peerServer.ConsensusData.CurrentStage, r.peerServer.ConsensusData.LastStage).Pubkey) {
+	if !reflect.DeepEqual(vcblock.Header.NewLeader.Pubkey, r.GetNewLeader(r.peerServer.ConsensusData.CurrentStage, r.peerServer.ConsensusData.LastStage).Pubkey) {
 		logger.Errorf("pubkey is not match, actual is %s, expected %s", hex.EncodeToString(vcblock.Header.NewLeader.Pubkey),
 			hex.EncodeToString(r.GetNewLeader(r.peerServer.ConsensusData.CurrentStage, r.peerServer.ConsensusData.LastStage).Pubkey))
 		return nil, ErrVerifyBlock

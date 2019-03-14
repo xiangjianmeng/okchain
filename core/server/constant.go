@@ -13,7 +13,7 @@ type PeerRole_Type int32
 
 const (
 	txChanSize     = 4096
-	defaultTimeout = time.Second * 16
+	defaultTimeout = time.Second * 1
 
 	PeerRole_Idle           PeerRole_Type = 0
 	PeerRole_DsLead         PeerRole_Type = 1

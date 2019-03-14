@@ -27,9 +27,9 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	ps "github.com/ok-chain/okchain/core/server"
 	"github.com/ok-chain/okchain/core/txpool"
 	logging "github.com/ok-chain/okchain/log"
-	ps "github.com/ok-chain/okchain/core/server"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )
@@ -125,11 +125,13 @@ func (r *RoleShardingLead) onMircoBlockConsensusCompleted(err error) error {
 	}
 	msg.Signature = sig
 	loggerShardingLead.Debugf("current micro block is %+v", r.GetCurrentMicroBlock())
-	err = r.peerServer.Multicast(msg, r.peerServer.Committee)
-	if err != nil {
-		loggerShardingLead.Errorf("send to all ds nodes failed")
-		return ErrMultiCastMessage
-	}
+
+	go func() {
+		err := r.peerServer.Multicast(msg, r.peerServer.Committee)
+		if err != nil {
+			loggerShardingLead.Errorf("send to all ds nodes failed")
+		}
+	}()
 
 	r.ChangeState(ps.STATE_WAITING_FINALBLOCK)
 	loggerShardingLead.Debugf("waiting for final block")
