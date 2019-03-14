@@ -31,9 +31,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/ok-chain/okchain/core/blockchain"
+	ps "github.com/ok-chain/okchain/core/server"
 	"github.com/ok-chain/okchain/crypto/multibls"
 	logging "github.com/ok-chain/okchain/log"
-	ps "github.com/ok-chain/okchain/core/server"
 	pb "github.com/ok-chain/okchain/protos"
 	"github.com/ok-chain/okchain/util"
 )
@@ -93,7 +93,7 @@ func (cl *ConsensusLead) InitiateConsensus(msg *pb.Message, to []*pb.PeerEndpoin
 	cl.state = ANNOUNCE_DONE
 	cl.counter = 0
 	cl.consensusBackupNodes = to
-	cl.toleranceSize = int(math.Floor(float64(cl.consensusBackupNodes.Length())*ToleranceFraction)) + 1
+	cl.toleranceSize = int(math.Floor(float64(cl.consensusBackupNodes.Length()-1)*ToleranceFraction)) + 1
 
 	loggerLead.Debugf("send announce messages to nodes")
 	cl.sendMsg2Backups(msg)
@@ -102,11 +102,13 @@ func (cl *ConsensusLead) InitiateConsensus(msg *pb.Message, to []*pb.PeerEndpoin
 }
 
 func (cl *ConsensusLead) sendMsg2Backups(msg *pb.Message) error {
-	err := cl.peerServer.Multicast(msg, cl.consensusBackupNodes)
-	if err != nil {
-		loggerLead.Errorf("send message to all nodes failed")
-		return ErrMultiCastMessage
-	}
+	go func() {
+		err := cl.peerServer.Multicast(msg, cl.consensusBackupNodes)
+		if err != nil {
+			loggerLead.Errorf("send message to all nodes failed")
+			// return ErrMultiCastMessage
+		}
+	}()
 
 	return nil
 }

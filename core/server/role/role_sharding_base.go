@@ -183,11 +183,12 @@ func (r *RoleShardingBase) ProcessFinalBlock(pbMsg *pb.Message, from *pb.PeerEnd
 		}
 		res.Signature = sig
 
-		err = r.peerServer.Multicast(res, r.peerServer.Committee)
-		if err != nil {
-			loggerShardingBase.Errorf("send message to all DS nodes failed")
-			return ErrMultiCastMessage
-		}
+		go func() {
+			err = r.peerServer.Multicast(res, r.peerServer.Committee)
+			if err != nil {
+				loggerShardingBase.Errorf("send message to all DS nodes failed")
+			}
+		}()
 
 		r.ChangeState(ps.STATE_WAITING_DSBLOCK)
 		loggerShardingBase.Debugf("waiting dsblock...")

@@ -30,9 +30,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/ok-chain/okchain/core/blockchain"
+	ps "github.com/ok-chain/okchain/core/server"
 	"github.com/ok-chain/okchain/crypto/multibls"
 	logging "github.com/ok-chain/okchain/log"
-	ps "github.com/ok-chain/okchain/core/server"
 	pb "github.com/ok-chain/okchain/protos"
 )
 
@@ -80,11 +80,13 @@ func (cb *ConsensusBackup) ProcessConsensusMsg(msg *pb.Message, from *pb.PeerEnd
 
 func (cb *ConsensusBackup) send2Lead(res *pb.Message) error {
 	loggerBackup.Debugf("send message to: %s", cb.leader)
-	err := cb.peerServer.Multicast(res, pb.PeerEndpointList{cb.leader})
-	if err != nil {
-		loggerBackup.Errorf("send message to all nodes failed")
-		return ErrMultiCastMessage
-	}
+	go func() {
+		err := cb.peerServer.Multicast(res, pb.PeerEndpointList{cb.leader})
+		if err != nil {
+			loggerBackup.Errorf("send message to all nodes failed")
+			// return ErrMultiCastMessage
+		}
+	}()
 	return nil
 }
 
@@ -158,13 +160,13 @@ func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, c
 			committeeSort = append(committeeSort, cb.peerServer.Committee[i])
 		}
 		sort.Sort(pb.ByPubkey{PeerEndpointList: committeeSort})
-		expected = int(math.Floor(float64(len(committeeSort))*ToleranceFraction + 1))
+		expected = int(math.Floor(float64(len(committeeSort)-1)*ToleranceFraction + 1))
 	} else {
 		if cb.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Header.ShardingSum == 1 {
-			expected = int(math.Floor(float64(len(cb.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Body.ShardingNodes))*ToleranceFraction)) + 1
+			expected = int(math.Floor(float64(len(cb.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Body.ShardingNodes)-1)*ToleranceFraction)) + 1
 		} else {
 			expected = int(math.Floor(float64(len(cb.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Body.ShardingNodes)/
-				int(cb.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Header.ShardingSum))*ToleranceFraction)) + 1
+				int(cb.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Header.ShardingSum)-1)*ToleranceFraction)) + 1
 		}
 	}
 

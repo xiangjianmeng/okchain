@@ -162,11 +162,12 @@ func (r *RoleIdle) ProcessFinalBlock(pbMsg *pb.Message, from *pb.PeerEndpoint) e
 		}
 		res.Signature = sig
 
-		err = r.peerServer.Multicast(res, curDsBlock.Body.Committee)
-		if err != nil {
-			idleLogger.Errorf("send message to all DS nodes failed")
-			return err
-		}
+		go func() {
+			err = r.peerServer.Multicast(res, curDsBlock.Body.Committee)
+			if err != nil {
+				idleLogger.Errorf("send message to all DS nodes failed")
+			}
+		}()
 
 		// r.ChangeState(ps.STATE_WAITING_DSBLOCK)
 		idleLogger.Debugf("waiting dsblock...")
@@ -308,11 +309,12 @@ func (r *RoleIdle) ProcessStartPoW(powmsg *pb.Message, from *pb.PeerEndpoint) er
 	r.peerServer.Registered <- struct{}{}
 	r.registered = true
 
-	err = r.peerServer.Multicast(res, r.peerServer.Committee)
-	if err != nil {
-		idleLogger.Errorf("send message to all DS node failed")
-		return ErrMultiCastMessage
-	}
+	go func() {
+		err = r.peerServer.Multicast(res, r.peerServer.Committee)
+		if err != nil {
+			idleLogger.Errorf("send message to all DS node failed")
+		}
+	}()
 
 	return nil
 }

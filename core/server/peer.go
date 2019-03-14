@@ -600,7 +600,7 @@ func (p *PeerServer) ChatWithPeer(nodeType string, address string) error {
 	var conn *grpc.ClientConn
 	var err error
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 3; i++ {
 
 		conn, err = newPeerClientConnectionWithAddress(address)
 		if err == nil {
@@ -613,6 +613,10 @@ func (p *PeerServer) ChatWithPeer(nodeType string, address string) error {
 
 	if err != nil {
 		peerLogger.Errorf("error creating connection to peer address %s: %s", address, err)
+		if p.msg.data != nil {
+			p.msg.retStr = err.Error()
+			p.msg.wg.Done()
+		}
 		return err
 	}
 
@@ -621,6 +625,10 @@ func (p *PeerServer) ChatWithPeer(nodeType string, address string) error {
 	stream, err := serverClient.Chat(ctx, grpc.MaxCallRecvMsgSize(rpcMessageSize), grpc.MaxCallSendMsgSize(rpcMessageSize))
 	if err != nil {
 		peerLogger.Errorf("error establishing chat with peer address %s: %s", address, err)
+		if p.msg.data != nil {
+			p.msg.retStr = err.Error()
+			p.msg.wg.Done()
+		}
 		return err
 	}
 	peerLogger.Debugf("Succefully established Chat with peer address: %s", address)
@@ -628,6 +636,10 @@ func (p *PeerServer) ChatWithPeer(nodeType string, address string) error {
 	stream.CloseSend()
 	if err != nil {
 		peerLogger.Errorf("ending Chat with peer address %s due to error: %s", address, err)
+		if p.msg.data != nil {
+			p.msg.retStr = err.Error()
+			p.msg.wg.Done()
+		}
 		return err
 	}
 	return nil
@@ -646,6 +658,10 @@ func (p *PeerServer) handleChat(ctx context.Context, stream ChatStream, address 
 		in, err := stream.Recv()
 		if err == io.EOF {
 			peerLogger.Errorf("%s: received EOF, ending Chat", util.GId)
+			if p.msg.data != nil {
+				p.msg.retStr = "stream recieve io.EOF"
+				p.msg.wg.Done()
+			}
 			return nil
 		}
 
@@ -976,8 +992,8 @@ func (p *PeerServer) GetPeerStatus(context.Context, *pb.EmptyRequest) (*pb.PeerS
 }
 
 func (p *PeerServer) GetCurrentRole() IRole {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	// p.lock.Lock()
+	// defer p.lock.Unlock()
 
 	tmp := p.currentRole
 	return tmp

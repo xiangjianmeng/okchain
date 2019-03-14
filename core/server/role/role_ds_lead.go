@@ -92,14 +92,6 @@ func (r *RoleDsLead) onDsBlockConsensusCompleted(err error) error {
 	msg.Payload = data
 	msg.Peer = r.peerServer.SelfNode
 
-	//loggerDsLead.Debugf("oldShardingNodes Dump")
-	//oldShardingNodes.Dump()
-	//err = r.peerServer.Multicast(msg, oldShardingNodes)
-	//if err != nil {
-	//	loggerDsLead.Errorf("send to dsblock to all sharding nodes failed")
-	//	return
-	//}
-
 	msgData, err := proto.Marshal(msg)
 	if err != nil {
 		loggerDsLead.Errorf(err.Error())
@@ -164,12 +156,6 @@ func (r *RoleDsLead) onFinalBlockConsensusCompleted(err error) error {
 	allPeers := filter.SelectAllPeers(r.peerServer.Gossip.Peers())
 	r.peerServer.Gossip.SendPri(gossip.CreateDataMsg(r.peerServer.DsBlockChain().CurrentBlock().NumberU64()+r.peerServer.TxBlockChain().CurrentBlock().NumberU64(),
 		msgData, common.ChainID("A")), allPeers...)
-
-	//err = r.peerServer.Multicast(msg, r.peerServer.ShardingNodes)
-	//if err != nil {
-	//	loggerDsLead.Errorf("send Message_Node_ProcessFinalBlock to all sharding nodes failed")
-	//	return
-	//}
 
 	if (numOfSharding != 0 && r.GetCurrentFinalBlock().Header.BlockNumber%uint64(r.peerServer.GetShardingSize()) == 0) ||
 		(numOfSharding == 0 && r.GetCurrentFinalBlock().Header.BlockNumber%uint64(len(r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Body.ShardingNodes)) == 0) {

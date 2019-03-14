@@ -213,10 +213,10 @@ func (r *RoleDsBase) ProcessMicroBlockSubmission(msg *pb.Message, from *pb.PeerE
 	}
 
 	if r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Header.ShardingSum == 1 {
-		expected = int(math.Floor(float64(len(r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Body.ShardingNodes))*ToleranceFraction)) + 1
+		expected = int(math.Floor(float64(len(r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Body.ShardingNodes)-1)*ToleranceFraction)) + 1
 	} else {
 		expected = int(math.Floor(float64(len(r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Body.ShardingNodes)/
-			int(r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Header.ShardingSum))*ToleranceFraction)) + 1
+			int(r.peerServer.DsBlockChain().CurrentBlock().(*pb.DSBlock).Header.ShardingSum)-1)*ToleranceFraction)) + 1
 	}
 
 	if counter < expected {
