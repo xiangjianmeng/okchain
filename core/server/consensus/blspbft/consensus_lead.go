@@ -679,12 +679,16 @@ func (cl *ConsensusLead) composeBroadCastBlock(boolMap []bool, multipleSig2 *mul
 		block, err = proto.Marshal(cl.role.GetCurrentMicroBlock())
 	case pb.ConsensusType_ViewChangeConsensus:
 		loggerLead.Debugf("vcblock is %+v", cl.role.GetCurrentVCBlock())
-		vcSig2 := &pb.VCBlockWithSig2{}
-		vcSig2.Sig2 = &pb.BoolMapSignature{}
-		vcSig2.Block = cl.role.GetCurrentVCBlock()
-		vcSig2.Sig2.BoolMap = boolMap
-		vcSig2.Sig2.Signature = multipleSig2.Serialize()
-		block, err = proto.Marshal(vcSig2)
+		if cl.role.GetName() == "ShardLead" {
+			block, err = proto.Marshal(cl.role.GetCurrentVCBlock())
+		} else {
+			vcSig2 := &pb.VCBlockWithSig2{}
+			vcSig2.Sig2 = &pb.BoolMapSignature{}
+			vcSig2.Block = cl.role.GetCurrentVCBlock()
+			vcSig2.Sig2.BoolMap = boolMap
+			vcSig2.Sig2.Signature = multipleSig2.Serialize()
+			block, err = proto.Marshal(vcSig2)
+		}
 	}
 	if err != nil {
 		loggerLead.Errorf("Marshal failed with error: %s", err.Error())

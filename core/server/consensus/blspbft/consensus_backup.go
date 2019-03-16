@@ -199,7 +199,7 @@ func (cb *ConsensusBackup) verifyBlockSig1(msg *pb.Message, from *pb.PeerEndpoin
 		committeeSort = append(committeeSort, cb.peerServer.Committee[i])
 	}
 	sort.Sort(pb.ByPubkey{PeerEndpointList: committeeSort})
-	expected = int(math.Floor(float64(len(committeeSort))*ToleranceFraction + 1))
+	expected = int(math.Floor(float64(len(committeeSort)-1)*ToleranceFraction + 1))
 
 	// deserialize payload to blockSig1.
 	err = proto.Unmarshal(msg.Payload, consensusPayload)
@@ -246,7 +246,7 @@ func (cb *ConsensusBackup) verifyBlockSig1(msg *pb.Message, from *pb.PeerEndpoin
 		if !verified {
 			return fmt.Errorf("verifying signatures in round 1 failed.")
 		}
-		cb.role.GetCurrentFinalBlock().Header.Signature = blockSig1.Signature
+		cb.role.GetCurrentVCBlock().Header.Signature = blockSig1.Signature
 	}
 	return nil
 }
@@ -463,6 +463,12 @@ func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, c
 		vcBlockSig2 := &pb.VCBlockWithSig2{}
 		vcblock := &pb.VCBlock{}
 		if cb.role.GetCurrentVCBlock().Header.Stage == "MicroBlockConsensus" {
+			err = proto.Unmarshal(consensusPayload.Msg, vcblock)
+			if err != nil {
+				loggerBackup.Errorf("micro block unmarshal failed with error: %s", err.Error())
+				return ErrUnmarshalMessage
+			}
+		} else {
 			err = proto.Unmarshal(consensusPayload.Msg, vcBlockSig2)
 			if err != nil {
 				loggerBackup.Errorf("txBlockSig2 unmarshal failed with error: %s", err.Error())
@@ -478,12 +484,6 @@ func (cb *ConsensusBackup) verifyBlock(msg *pb.Message, from *pb.PeerEndpoint, c
 			err = cb.peerServer.VerifyMultiSignByBoolMap(vcBlockSig2.Sig2.BoolMap, committeeSort, multiSig2, vcblock.Header.Signature, expected)
 			if err != nil {
 				return err
-			}
-		} else {
-			err = proto.Unmarshal(consensusPayload.Msg, vcblock)
-			if err != nil {
-				loggerBackup.Errorf("micro block unmarshal failed with error: %s", err.Error())
-				return ErrUnmarshalMessage
 			}
 		}
 

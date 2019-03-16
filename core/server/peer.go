@@ -996,7 +996,7 @@ func (p *PeerServer) VerifyDSBlockMultiSign2(dsBlockSign2 *pb.DSBlockWithSig2) e
 		if err != nil {
 			return err
 		}
-		expected := int(math.Floor(float64(len(sortedCommittee))*blockchain.ToleranceFraction + 1))
+		expected := int(math.Floor(float64(len(sortedCommittee)-1)*blockchain.ToleranceFraction + 1))
 		err = p.VerifyMultiSignByBoolMap(dsBlockSign2.Sig2.BoolMap, sortedCommittee, multiBlsSign2, dsblock.Header.Signature, expected)
 		if err != nil {
 			return err
@@ -1019,7 +1019,7 @@ func (p *PeerServer) VerifyFinalBlockMultiSign2(txBlockSign2 *pb.TxBlockWithSig2
 	if err != nil {
 		return err
 	}
-	expected := int(math.Floor(float64(len(sortedCommittee))*blockchain.ToleranceFraction + 1))
+	expected := int(math.Floor(float64(len(sortedCommittee)-1)*blockchain.ToleranceFraction + 1))
 	err = p.VerifyMultiSignByBoolMap(txBlockSign2.Sig2.BoolMap, sortedCommittee, multiBlsSign2, txblock.Header.Signature, expected)
 	if err != nil {
 		return err
